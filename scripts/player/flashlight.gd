@@ -14,6 +14,7 @@ const SPOT_RANGE := 12.0
 
 var _spot: SpotLight3D
 var _arm_pivot: Node3D
+var _off_arm: Node3D
 var _click: AudioStreamWAV
 var _click_player: AudioStreamPlayer
 var _sway := Vector2.ZERO
@@ -46,6 +47,35 @@ func _build_viewmodel() -> void:
 	_arm_pivot = Node3D.new()
 	_arm_pivot.position = Vector3(0.28, -0.25, -0.35)
 	add_child(_arm_pivot)
+
+	# Off-hand: second forearm rising from bottom-left to steady the
+	# flashlight body (Vision 5.7: local player viewmodel arms).
+	_off_arm = Node3D.new()
+	_off_arm.position = Vector3(-0.30, -0.34, -0.33)
+	add_child(_off_arm)
+	var off_material := StandardMaterial3D.new()
+	off_material.albedo_color = Color("39445c")
+	off_material.roughness = 0.85
+	var off_forearm := MeshInstance3D.new()
+	var ofm := CapsuleMesh.new()
+	ofm.radius = 0.037
+	ofm.height = 0.36
+	off_forearm.mesh = ofm
+	off_forearm.material_override = off_material
+	off_forearm.rotation_degrees = Vector3(62, 0, -38)
+	off_forearm.position = Vector3(-0.06, -0.04, 0.12)
+	_off_arm.add_child(off_forearm)
+	var off_hand := MeshInstance3D.new()
+	var ohm := BoxMesh.new()
+	ohm.size = Vector3(0.075, 0.08, 0.12)
+	off_hand.mesh = ohm
+	var off_skin := StandardMaterial3D.new()
+	off_skin.albedo_color = Color("c8a284")
+	off_skin.roughness = 0.7
+	off_hand.material_override = off_skin
+	off_hand.position = Vector3(-0.005, 0.01, -0.055)
+	off_hand.rotation_degrees = Vector3(12, 8, -6)
+	_off_arm.add_child(off_hand)
 
 	# Forearm: capsule angled forward, sleeve color dark.
 	var arm_mat := StandardMaterial3D.new()
@@ -129,7 +159,14 @@ func update_viewmodel(look_delta: Vector2, speed: float, delta: float) -> void:
 	_arm_pivot.position.y = -0.25 + _sway.y * 0.6
 	# slight bob while moving
 	_bob_phase += delta * (6.0 + speed * 1.2)
-	_arm_pivot.position.z = -0.35 + sin(_bob_phase) * 0.008 * clampf(speed / 4.0, 0.0, 1.0)
+	var move01 := clampf(speed / 4.0, 0.0, 1.0)
+	_arm_pivot.position.z = -0.35 + sin(_bob_phase) * 0.008 * move01
+	# Off-hand steadies the light: mirrors main-arm sway/bob, plus a slow
+	# breathing drift when idle so the rig never looks frozen.
+	_off_arm.position.x = -0.30 + _sway.x * 0.7 - sin(_bob_phase) * 0.006 * move01
+	_off_arm.position.y = -0.34 + _sway.y * 0.45 + sin(_bob_phase + 0.9) * 0.005 * move01
+	_off_arm.position.z = -0.33 + sin(_bob_phase * 0.5) * 0.004 * move01
+	_off_arm.rotation.z = _sway.x * 0.5 + sin(_bob_phase * 0.33) * 0.01
 
 
 func _physics_process(delta: float) -> void:
