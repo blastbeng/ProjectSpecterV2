@@ -190,13 +190,20 @@ func _build_lamp() -> void:
 	bulb.mesh = bm
 	bulb.material_override = MaterialFactory.bulb()
 	_place(bulb, Vector3(lx, 2.30, lz))
-	# Warm light
+	# Warm lights: main pendant + softer fill over the kitchen run.
 	var light := OmniLight3D.new()
 	light.light_color = MaterialFactory.LAMP_LIGHT
-	light.light_energy = 1.2
-	light.omni_range = 9.0
+	light.light_energy = 2.6
+	light.omni_range = 12.0
 	light.shadow_enabled = true
+	light.shadow_blur = 1.4
 	_place(light, Vector3(lx, 2.18, lz))
+	var fill := OmniLight3D.new()
+	fill.light_color = MaterialFactory.LAMP_LIGHT.lerp(Color.WHITE, 0.25)
+	fill.light_energy = 1.1
+	fill.omni_range = 7.0
+	fill.position = Vector3(2.2, 2.35, 1.1)
+	add_child(fill)
 
 
 func _build_dust() -> void:

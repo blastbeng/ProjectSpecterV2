@@ -24,7 +24,7 @@ func _build_environment() -> void:
 	env.sky = sky
 	env.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
 	env.ambient_light_color = Color("10141c")
-	env.ambient_light_energy = 0.65
+	env.ambient_light_energy = 1.25
 	env.tonemap_mode = Environment.TONE_MAPPER_ACES
 	env.tonemap_exposure = 0.9
 	env.glow_enabled = true
@@ -32,11 +32,12 @@ func _build_environment() -> void:
 	env.glow_bloom = 0.05
 	env.fog_enabled = true
 	env.fog_light_color = Color("0b0e14")
-	env.fog_density = 0.022
+	env.fog_density = 0.012
 	env.fog_sky_affect = 0.15
 
-	# Desktop-only extras per Vision 5.1 (never on Android quality).
-	if not OS.has_feature("mobile") and DisplayServer.get_name() != "headless":
+	# Desktop-only extras per Vision 5.1 (never on Android/GL compatibility).
+	if not OS.has_feature("mobile") and DisplayServer.get_name() != "headless" \
+			and RenderingServer.get_current_rendering_method() != "gl_compatibility":
 		env.volumetric_fog_enabled = true
 		env.volumetric_fog_density = 0.03
 		env.volumetric_fog_albedo = Color("0b0e14")
@@ -50,8 +51,8 @@ func _build_moonlight() -> void:
 	var moon := DirectionalLight3D.new()
 	moon.name = "Moonlight"
 	moon.light_color = Color(0.55, 0.65, 0.85)
-	moon.light_energy = 0.12
-	moon.light_indirect_energy = 0.4
+	moon.light_energy = 0.35
+	moon.light_indirect_energy = 0.7
 	moon.shadow_enabled = true
 	moon.rotation_degrees = Vector3(-38.0, 32.0, 0.0)
 	add_child(moon)
