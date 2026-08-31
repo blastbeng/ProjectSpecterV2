@@ -25,6 +25,11 @@ cd "$(dirname "$0")/.." || exit 3
 if [ ! -f ".godot/global_script_class_cache.cfg" ]; then
   echo "-- class cache missing, importing once --"
   "$GODOT_BIN" --headless --import >/dev/null 2>&1
+elif [ -n "$(find scripts tests -name '*.gd' -newer .godot/global_script_class_cache.cfg -print -quit 2>/dev/null)" ]; then
+  # A .gd changed after the last import: global class_name registrations may
+  # be stale ("Could not find type X" after pulls with new scripts).
+  echo "-- scripts newer than class cache, importing once --"
+  "$GODOT_BIN" --headless --import >/dev/null 2>&1
 fi
 
 JOBS="${TEST_JOBS:-$(nproc 2>/dev/null || echo 4)}"
