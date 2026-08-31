@@ -78,18 +78,29 @@ start godot (Wayland):
 - Keep .godot/ and *.tmp in .gitignore (main cause of remote pull failures).
 
 ## 6. NEXT TASKS (top = next; rewrite this list as you work)
-1. WorldEnvironment night setup (Vision 5.1), if missing.
-2. MaterialFactory + textured surfaces everywhere (Vision 5.2, 5.11).
-3. Room themes + prop kits (Vision 5.5, 5.6).
-4. Doors: frame, hinge pivot, knob, creak sound, interaction.
-5. First-person controller feel: accel/decel, head bob, crouch, footsteps.
-6. Investigator humanoid + face texture + walk animation (Vision 5.7).
-7. Flashlight viewmodel + SpotLight + battery (Vision 5.8).
-8. UI Theme + splash + main menu visual pass (Vision 5.9).
-9. Lobby -> host/join -> spawn players.
-10. EMF evidence + journal/deduction UI (Vision 6).
-11. Entity powers v1: door slam, light flicker, fake footsteps (Vision 6).
-12. Objectives + extraction activation + countdown (Vision 6).
-13. Bots v1 (Vision 6).
-14. Android touch controls.
-15. Results screen + post-match flow.
+1. Procedural building: hallway + 3-4 room types branching off it, seeded
+   generator (Vision 5.4/5.5; kitchen exists as RoomBuilder reference).
+2. Multi-room door wiring: doors as portals between rooms, locked variant.
+3. Investigator humanoid + face texture + walk animation (Vision 5.7).
+4. Room themes + prop kits beyond kitchen: bedroom, bathroom, storage (5.5).
+5. UI Theme + splash + main menu visual pass (Vision 5.9 palette/colors).
+6. Lobby -> host/join -> spawn players (ENet high-level multiplayer).
+7. EMF evidence + journal/deduction UI (Vision 6).
+8. Entity powers v1: door slam, light flicker, fake footsteps (Vision 6).
+9. Objectives + extraction activation + countdown (Vision 6).
+10. Bots v1 (Vision 6).
+11. fear meter HUD + heartbeat audio (Vision 6).
+12. Android touch controls.
+13. Results screen + post-match flow.
+
+NOTES (session learnings, keep short):
+- V2 bootstrap DONE: addon at addons/godot_mcp, boot->menu->match chain,
+  SceneRouter autoload, night env + MaterialFactory + kitchen + doors +
+  controller feel + flashlight all in and tested (tests/test_*.gd PASS).
+- Evidence loop works LOCALLY: blastpi5 has own labwc Wayland + grim;
+  run game with --rendering-method gl_compatibility, shoot with grim,
+  verify via PIL pixel stats (see memory notes).
+- Remote playtester (192.168.1.29:6550) is UP via remote editor
+  (setsid nohup godot --editor, see memory); godot-playtester MCP connects,
+  but its run_project does NOT spawn the game remotely (middleware bug);
+  local-run-based evidence is the fallback. Re-verify next session.
