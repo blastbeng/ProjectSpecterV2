@@ -15,6 +15,7 @@ var _powers: EntityPowers
 var _house: HouseBuilder
 var _demo_avatar: InvestigatorAvatar
 var _extract_gate: ExtractionGate
+var _fear: FearMeter
 # peer id -> remote avatar (Vision 5.2)
 var _remote_avatars := {}
 var _toast_cooldown := 0.0
@@ -66,6 +67,7 @@ func _ready() -> void:
 	_powers.name = "EntityPowers"
 	add_child(_powers)
 	_powers.setup(house, _player)
+	_powers.power_manifest.connect(_on_entity_power_felt)
 	# Objective pipeline (Vision 6): breaker inside the locked room + the
 	# extraction gate at the hall's west end unlock the escape countdown.
 	if house.breaker != null:
@@ -74,6 +76,14 @@ func _ready() -> void:
 		(door as InteractableDoor).state_changed.connect(_on_locked_door_opened)
 	_spawn_extract_gate()
 	_hud.set_objective(_objective_text())
+	# Fear system (Vision 6): darkness + isolation + entity activity.
+	_fear = FearMeter.new()
+	_fear.name = "FearMeter"
+	add_child(_fear)
+	_fear.fear_changed.connect(func(v01: float) -> void: _hud.set_fear(v01))
+	# Tag lamps so the darkness probe can find lights cheaply.
+	for node in house.find_children("*", "OmniLight3D", true, false):
+		node.add_to_group("fear_lights")
 
 
 func _process(delta: float) -> void:
@@ -91,6 +101,12 @@ func _process(delta: float) -> void:
 		if _extract_left <= 0.0:
 			_extract_running = false
 			_hud.show_extract_failed()
+	if is_instance_valid(_fear):
+		var crowd: Array = _remote_avatars.values()
+		if is_instance_valid(_demo_avatar):
+			crowd.append(_demo_avatar)
+		_fear.sample(delta, _player, crowd, _powers)
+		_player.set_fear_sway(_fear.sway_offset())
 
 
 func _objective_text() -> String:
@@ -219,6 +235,11 @@ func _unhandled_input(event: InputEvent) -> void:
 func _toast(text: String) -> void:
 	_hud.prompt_label.text = text
 	_toast_cooldown = 2.2
+
+
+func _on_entity_power_felt(at: Vector3) -> void:
+	if is_instance_valid(_fear):
+		_fear.on_entity_power_near(at, _player)
 
 
 func _on_capture_added(kind: String, room: String) -> void:

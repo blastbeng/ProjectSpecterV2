@@ -58,6 +58,36 @@ static func footstep(variant := 0) -> AudioStreamWAV:
 	return _to_wav(samples)
 
 
+## Heartbeat: lub-dub pair of low thumps (Vision 6 fear audio).
+## strength01 shapes tempo-irrelevant character: deeper + harder at high fear.
+static func heartbeat(strength01 := 0.5) -> AudioStreamWAV:
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 900 + int(strength01 * 20.0)
+	var duration := 0.42
+	var n := int(duration * RATE)
+	var samples := PackedFloat32Array()
+	samples.resize(n)
+	var beats := [0.0, 0.22]           # lub (strong), dub (softer)
+	var gains := [1.0, 0.62]
+	var f0 := lerpf(52.0, 42.0, strength01)  # deeper when scared
+	for i in n:
+		var t := float(i) / RATE
+		var s := 0.0
+		for k in 2:
+			var dt: float = t - beats[k]
+			if dt > 0.0 and dt < 0.16:
+				var env: float = exp(-dt * 26.0)
+				var phase: float = TAU * f0 * dt
+				var thump: float = sin(phase) * env * gains[k]
+				# body knock: a little 2nd harmonic
+				thump += sin(phase * 2.0) * env * gains[k] * 0.3
+				s += thump * 0.72
+		# faint breathy noise floor at high fear.
+		s += rng.randf_range(-1.0, 1.0) * 0.02 * strength01
+		samples[i] = clampf(s, -1.0, 1.0)
+	return _to_wav(samples)
+
+
 ## Objective "power restored": rising two-tone hum + relay thunk (Vision 6).
 static func power_up(seed_value := 1) -> AudioStreamWAV:
 	var rng := RandomNumberGenerator.new()

@@ -10,6 +10,7 @@ var emf_bar: ProgressBar
 var emf_label: Label
 var objective_label: Label
 var extract_label: Label
+var fear_bar: ProgressBar
 
 func _ready() -> void:
 	prompt_label = Label.new()
@@ -156,6 +157,41 @@ func _ready() -> void:
 	extract_label.visible = false
 	add_child(extract_label)
 
+	# Fear meter (Vision 6): bottom-right, red fill that brightens with fear.
+	var fear_fill := StyleBoxFlat.new()
+	fear_fill.bg_color = Color("b8352a")
+	fear_fill.set_corner_radius_all(3)
+	fear_bar = ProgressBar.new()
+	fear_bar.min_value = 0.0
+	fear_bar.max_value = 1.0
+	fear_bar.value = 0.0
+	fear_bar.show_percentage = false
+	fear_bar.anchor_left = 1.0
+	fear_bar.anchor_right = 1.0
+	fear_bar.anchor_top = 1.0
+	fear_bar.anchor_bottom = 1.0
+	fear_bar.offset_left = -170.0
+	fear_bar.offset_right = -40.0
+	fear_bar.offset_top = -46.0
+	fear_bar.offset_bottom = -36.0
+	fear_bar.add_theme_stylebox_override("fill", fear_fill)
+	fear_bar.add_theme_stylebox_override("background", sb_bg)
+	add_child(fear_bar)
+	var fear_tag := Label.new()
+	fear_tag.text = "FEAR"
+	fear_tag.anchor_left = 1.0
+	fear_tag.anchor_right = 1.0
+	fear_tag.anchor_top = 1.0
+	fear_tag.anchor_bottom = 1.0
+	fear_tag.offset_left = -206.0
+	fear_tag.offset_right = -174.0
+	fear_tag.offset_top = -52.0
+	fear_tag.offset_bottom = -30.0
+	fear_tag.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	fear_tag.add_theme_font_size_override("font_size", 12)
+	fear_tag.add_theme_color_override("font_color", Color(0.85, 0.5, 0.45, 0.9))
+	add_child(fear_tag)
+
 	# Bottom-right hint line (Vision 5.9 HUD) — mirrors keybinds to the player.
 	var hint := Label.new()
 	hint.text = "WASD move · SHIFT sprint · CTRL crouch · E use · TAB journal"
@@ -205,3 +241,8 @@ func set_extract_timer(seconds: float) -> void:
 func show_extract_failed() -> void:
 	extract_label.text = "EXTRACTION LOST"
 	extract_label.add_theme_color_override("font_color", Color("8a2020"))
+
+
+## Fear 0..1: bar fill pulses color toward danger at high fear.
+func set_fear(v01: float) -> void:
+	fear_bar.value = clampf(v01, 0.0, 1.0)

@@ -81,6 +81,13 @@ func stamina_ratio() -> float:
 	return stamina / STAMINA_MAX
 
 
+## Fear system (Vision 6): a small camera roll offset, fed by Match each
+## frame; peaks ~1.2 deg, no translation so it never nauseates.
+func set_fear_sway(offset_rad: float) -> void:
+	if camera != null:
+		camera.rotation.z = offset_rad
+
+
 func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventMouseMotion and Input.mouse_mode == Input.MOUSE_MODE_CAPTURED:
 		rotate_y(-event.relative.x * MOUSE_SENS)

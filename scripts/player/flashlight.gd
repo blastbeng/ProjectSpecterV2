@@ -145,6 +145,10 @@ func toggle() -> void:
 	_click_player.play()
 
 
+func is_on() -> bool:
+	return enabled
+
+
 func battery_ratio() -> float:
 	return battery / BATTERY_MAX
 

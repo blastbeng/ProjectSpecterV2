@@ -1,5 +1,9 @@
 class_name EntityPowers
 extends Node
+
+## Emitted whenever a power lands (any peer), carrying the world position of
+## the event so Match can feed the fear system (Vision 6).
+signal power_manifest(kind: String, at: Vector3)
 ## Entity powers v1 (Vision 6): door slam, light flicker/brownout, fake
 ## footsteps. An invisible presence acts on the house on randomized
 ## cooldowns, biased toward the target investigator's position. Solo mode
@@ -197,6 +201,7 @@ func _apply_slam(path: NodePath) -> void:
 	var d := _resolve_door(path)
 	if d != null:
 		d.entity_slam()
+		power_manifest.emit("slam", d.global_position)
 
 
 var _pending_flicker: Array = []
@@ -234,6 +239,10 @@ func _apply_flicker(keys: Array) -> void:
 		if _rng.randf() < 0.25:
 			light.light_energy = 0.0
 			_killed.append({"light": light, "until": Time.get_ticks_msec() + int(kill_time_s * 1000)})
+	if not keys.is_empty():
+		var anchor := _resolve_light(keys[0])
+		if anchor != null:
+			power_manifest.emit("flicker", anchor.global_position)
 	last_power = "flicker"
 
 
@@ -242,6 +251,7 @@ func _apply_steps(pos: Vector3, dir: Vector3) -> void:
 	_fake_dir = dir
 	_fake_remaining = 6
 	_fake_timer = 0.0
+	power_manifest.emit("steps", pos)
 	last_power = "steps"
 
 
