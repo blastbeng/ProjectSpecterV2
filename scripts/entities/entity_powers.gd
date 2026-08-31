@@ -24,12 +24,19 @@ var _fake_dir := Vector3.RIGHT
 var _fake_timer := 0.0
 var _steps: AudioStreamPlayer3D
 var _steps_played := 0
-var last_power := ""
+var last_power := ""       # last power the entity cast (for HUD/tests)
+var _last_rpc_kind := ""   # last received RPC kind (net tests poll this)
+## Seeded rng so every peer independently picks the SAME brownout victims
+## from the fan-out payload (no per-lamp random rolls over the wire).
+var _rng: RandomNumberGenerator
+var _rng_shared_seed := 990217  # one brownout-victim sequence per event
 
 
 func setup(house: HouseBuilder, target: Node3D) -> void:
 	_house = house
 	_target = target
+	_rng = RandomNumberGenerator.new()
+	_rng.seed = _rng_shared_seed
 	_noise = FastNoiseLite.new()
 	_noise.seed = 20260832
 	_noise.frequency = 3.1
@@ -63,9 +70,14 @@ func _process(delta: float) -> void:
 
 
 func _is_authority() -> bool:
-	# Solo play or host runs the presence; clients just observe the results
-	# (RPC fan-out arrives with the entity-player role).
-	return multiplayer.get_unique_id() == 1 or _target == null
+	# Solo play or host runs the presence; clients observe via RPC fan-out.
+	# Guard: early frames / tests may run before any peer is assigned, where
+	# get_unique_id() errors — treat "no peer yet" as authority (harmless:
+	# the OfflineMultiplayerPeer default makes solo play authoritative too).
+	var mp := get_multiplayer()
+	if mp == null or mp.multiplayer_peer == null:
+		return true
+	return mp.get_unique_id() == 1
 
 
 func _try_cast() -> void:
@@ -98,7 +110,9 @@ func cast_door_slam(at: Vector3) -> void:
 			best = d
 	if best == null:
 		return
-	best.entity_slam()
+	var path := String(_door_path(best))
+	if _is_authority():
+		_send_event("slam", {"door": path})
 	_cooldowns["slam"] = randf_range(14.0, 22.0)
 	last_power = "slam"
 
@@ -108,21 +122,21 @@ func cast_flicker(at: Vector3) -> void:
 	if _house == null:
 		return
 	var hit_any := false
+	var victim_positions: Array = []
 	for node in _house.find_children("*", "OmniLight3D", true, false):
 		var light := node as OmniLight3D
 		if light.global_position.distance_to(at) > NEAR_M:
 			continue
 		hit_any = true
-		if not light.has_meta("base_energy"):
-			light.set_meta("base_energy", light.light_energy)
-		# 25 % chance a lamp browns out instead of strobing.
-		if randf() < 0.25:
-			light.light_energy = 0.0
-			_killed.append({"light": light, "until": Time.get_ticks_msec() + int(kill_time_s * 1000)})
+		victim_positions.append(_light_key(light))
+	if not hit_any:
+		return
+	# Lights are addressed by GLOBAL POSITION (auto-named nodes can differ
+	# across peers; positions are deterministic from the seed).
+	_send_event("flicker", {"positions": _round_positions(victim_positions), "window": flicker_time_s})
 	_flickering = flicker_time_s
 	_cooldowns["flicker"] = randf_range(18.0, 26.0)
-	if hit_any:
-		last_power = "flicker"
+	last_power = "flicker"
 
 
 ## FAKE FOOTSTEPS: a phantom walks a few steps from a point near the target.
@@ -132,8 +146,109 @@ func cast_fake_steps(at: Vector3) -> void:
 	_fake_pos = at + _fake_dir * 1.2
 	_fake_remaining = 6
 	_fake_timer = 0.0
+	# Applied locally by _net_event; remote peers replay the same walk.
+	_send_event("steps", {"pos": _fake_pos, "dir": _fake_dir})
 	_cooldowns["steps"] = randf_range(13.0, 19.0)
 	last_power = "steps"
+
+
+## Lights are addressed by position, not node names: lamps are auto-named
+## (@OmniLight3D@N) and can differ across peers, while positions are
+## deterministic from the seed. Rounded so float wire round-trips match.
+func _light_key(light: OmniLight3D) -> Vector3:
+	return light.global_position.snapped(Vector3(0.05, 0.05, 0.05))
+
+
+func _round_positions(keys: Array) -> Array:
+	var out: Array = []
+	for k in keys:
+		out.append(k)
+	return out
+
+
+## ---- network fan-out (Vision 6): clients replay host-cast powers ----------
+
+func _door_path(d: InteractableDoor) -> NodePath:
+	return _house.get_path_to(d)
+
+
+## call_local executes on the caster too, so this single call applies
+## locally in solo play (OfflineMultiplayerPeer) and fans out online.
+func _send_event(kind: String, data: Dictionary) -> void:
+	_net_event.rpc(kind, data)
+
+
+@rpc("authority", "call_local", "reliable")
+func _net_event(kind: String, data: Dictionary = {}) -> void:
+	_last_rpc_kind = kind
+	match kind:
+		"slam":
+			_apply_slam(String(data["door"]))
+		"flicker":
+			_pending_flicker = data["positions"] as Array
+			if data.has("window"):
+				flicker_time_s = float(data["window"])
+			_call_deferred_apply_flicker()
+		"steps":
+			_apply_steps(data["pos"], data["dir"])
+
+
+func _apply_slam(path: NodePath) -> void:
+	var d := _resolve_door(path)
+	if d != null:
+		d.entity_slam()
+
+
+var _pending_flicker: Array = []
+
+
+func _resolve_door(path: NodePath) -> InteractableDoor:
+	if _house == null:
+		return null
+	return _house.get_node_or_null(path) as InteractableDoor
+
+
+func _resolve_light(key: Vector3) -> OmniLight3D:
+	if _house == null:
+		return null
+	# Position-keyed lookup (rebuilt lazily when lights move/restore).
+	for node in _house.find_children("*", "OmniLight3D", true, false):
+		if _light_key(node as OmniLight3D) == key:
+			return node
+	return null
+
+
+func _apply_flicker(keys: Array) -> void:
+	# Re-seed per event: same shared seed + same ordered position list makes
+	# every peer independently pick the identical brownout victim set.
+	if _rng != null:
+		_rng.seed = _rng_shared_seed
+	for p in keys:
+		var light := _resolve_light(p)
+		if light == null:
+			continue
+		if not light.has_meta("base_energy"):
+			light.set_meta("base_energy", light.light_energy)
+		# 25 % brownout per lamp; shared seed + ordered position list keeps
+		# every peer's victim set identical without extra wire payloads.
+		if _rng.randf() < 0.25:
+			light.light_energy = 0.0
+			_killed.append({"light": light, "until": Time.get_ticks_msec() + int(kill_time_s * 1000)})
+	last_power = "flicker"
+
+
+func _apply_steps(pos: Vector3, dir: Vector3) -> void:
+	_fake_pos = pos
+	_fake_dir = dir
+	_fake_remaining = 6
+	_fake_timer = 0.0
+	last_power = "steps"
+
+
+func _call_deferred_apply_flicker() -> void:
+	# Defer one frame so node paths are valid even if RPC raced the build.
+	_apply_flicker(_pending_flicker)
+	_pending_flicker = []
 
 
 ## ---- effect ticks -----------------------------------------------------------

@@ -66,6 +66,13 @@ export GODOT_BIN TIMEOUT
 
 shopt -s nullglob
 tests=(tests/test_*.gd)
+# Exclude the two-process driver: launched separately via tools/net_powers_test.sh.
+test_list=()
+for t in "${tests[@]}"; do
+  [ "$(basename "$t")" = "test_net_powers.gd" ] && continue
+  test_list+=("$t")
+done
+tests=("${test_list[@]}")
 if [ "${#tests[@]}" -eq 0 ]; then
   echo "no tests found in tests/"
   exit 3
@@ -76,5 +83,22 @@ printf '%s\n' "${tests[@]}" | \
 rc=$?
 # xargs: 123 = at least one worker failed.
 if [ "$rc" -eq 123 ]; then rc=1; fi
-echo "TEST_RUN_COMPLETE rc=$rc (${#tests[@]} tests, $JOBS jobs, ${TIMEOUT}s timeout)"
+
+# Two-process net test (driver + client helper) runs separately: it binds
+# ENet ports and coordinates processes, so it must not share frame pacing
+# with the parallel single-process suite.
+run_net_powers() {
+  local out
+  out="$(TEST_TIMEOUT="$TIMEOUT" bash tools/net_powers_test.sh 2>&1)"
+  if echo "$out" | grep -qE "TEST_NET_POWERS_RESULT=PASS"; then
+    echo "  [net_powers] PASS"
+  else
+    echo "$out" | sed 's/^/      /' | tail -6
+    echo "  [net_powers] FAIL"
+    rc=1
+  fi
+}
+run_net_powers
+
+echo "TEST_RUN_COMPLETE rc=$rc (${#test_list[@]} headless tests + net_powers, $JOBS jobs, ${TIMEOUT}s timeout)"
 exit "$rc"
