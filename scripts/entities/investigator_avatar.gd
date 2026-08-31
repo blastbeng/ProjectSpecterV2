@@ -18,9 +18,15 @@ const HAIR_C := Color("241a12")
 static var _face_cache: Dictionary = {}
 
 var player_index := 0
-var display_name := ""
+var display_name := "":
+	set(v):
+		display_name = v
+		_refresh_name_label()
+## Team tint from the lobby (Net.player_color); Color(0) = auto by index.
+var cloth_color := Color(0)
 var _speed := 0.0
 var _crouching := false
+var _name_label: Label3D
 
 var _rig: Node3D
 var _torso: Node3D
@@ -132,7 +138,10 @@ static func face_texture_detailed(skin: Color, seed_value := 0) -> ImageTexture:
 
 func _build_rig() -> void:
 	var skin := SKINS[player_index % SKINS.size()]
+	# Lobby team color wins (Vision 5.10-family tints); fallback = jacket list.
 	var jacket_c := JACKETS[player_index % JACKETS.size()]
+	if cloth_color.r + cloth_color.g + cloth_color.b > 0.01:
+		jacket_c = cloth_color
 	var jacket := _cloth(jacket_c)
 	var pants := _cloth(PANTS_C)
 	var boots := _cloth(BOOT_C, 0.6)
@@ -190,6 +199,11 @@ func _build_rig() -> void:
 	hair.scale = Vector3(1.02, 0.62, 1.02)
 	hair.position = Vector3(0, 0.085, 0.012)
 	_head.add_child(hair)
+	# Name plate above the head (Vision 5.9 lobby names follow the avatar).
+	_name_label = Label3D.new()
+	_refresh_name_label()
+	_name_label.position = Vector3(0, 0.42, 0)
+	_head.add_child(_name_label)
 
 	# Arms and legs: pivot -> capsule child offset half-length down.
 	for side in [-1.0, 1.0]:
@@ -238,6 +252,20 @@ func _build_rig() -> void:
 		(boot.mesh as BoxMesh).size = Vector3(0.11, 0.09, 0.24)
 		boot.position = Vector3(0, -0.42 - 0.045, 0.05)
 		knee.add_child(boot)
+
+
+func _refresh_name_label() -> void:
+	if _name_label == null or not is_inside_tree():
+		return
+	_name_label.text = display_name
+	_name_label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+	_name_label.no_depth_test = true
+	_name_label.pixel_size = 0.004
+	_name_label.font_size = 26
+	_name_label.outline_size = 6
+	_name_label.modulate = Color(0.9, 0.9, 0.86)
+	_name_label.outline_modulate = Color(0, 0, 0, 0.85)
+	_name_label.visible = display_name != ""
 
 
 func _process(delta: float) -> void:

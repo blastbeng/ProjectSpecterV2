@@ -57,7 +57,21 @@ func _process(_delta: float) -> void:
 
 
 func _on_player_registered(id: int, info: Dictionary) -> void:
+	if id == multiplayer.get_unique_id():
+		return  # our own registration; the local body is the player camera
+	# First real peer replaces the placeholder teammate (Vision 5.9 lobby).
+	if is_instance_valid(_demo_avatar):
+		_demo_avatar.queue_free()
+		_demo_avatar = null
 	_spawn_remote_avatar(id, info)
+
+
+## Lobby identity -> avatar: team-color jacket + name plate (Vision 5.9).
+func _apply_team_tint(av: InvestigatorAvatar, info: Dictionary) -> void:
+	var c := str(info.get("color", ""))
+	if c.begins_with("#") and c.length() >= 7:
+		av.cloth_color = Color(c)
+	av.display_name = str(info.get("name", av.display_name))
 
 
 func _on_player_left(id: int) -> void:
@@ -72,9 +86,9 @@ func _spawn_remote_avatar(id: int, info: Dictionary) -> void:
 		return
 	var av := InvestigatorAvatar.new()
 	av.player_index = id % 4
-	av.display_name = str(info.get("name", "Investigator"))
+	_apply_team_tint(av, info)
 	add_child(av)
-	av.position = PLAYER_SPAWN + Vector3(0.9, 0.0, 0.0)
+	av.position = PLAYER_SPAWN + Vector3(0.9, 0.0, 0.4)
 	_remote_avatars[id] = av
 
 

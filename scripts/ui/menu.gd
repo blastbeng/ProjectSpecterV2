@@ -140,17 +140,13 @@ func _process(_delta: float) -> void:
 
 
 func _on_host() -> void:
-	# Solo start when hosting fails; Match works offline either way.
-	Net.host_game(Net.player_name, Net.player_color)
-	SceneRouter.goto("res://scenes/match.tscn")
+	# Both now land in the lobby (Vision 5.9 flow); the lobby holds the
+	# real name/color/IP flow (auto-test path stays: Net host first).
+	SceneRouter.goto("res://scenes/lobby.tscn")
 
 
 func _on_join() -> void:
-	# LAN join: try this machine first (local two-window testing); a real IP
-	# will come from a lobby text field in a later iteration.
-	if not Net.join_game("127.0.0.1", Net.player_name, Net.player_color):
-		return
-	SceneRouter.goto("res://scenes/match.tscn")
+	SceneRouter.goto("res://scenes/lobby.tscn")
 
 
 func _on_quit() -> void:
