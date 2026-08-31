@@ -169,7 +169,7 @@ var _step_index := 0
 func _play_step() -> void:
 	if _step_player == null:
 		_step_player = AudioStreamPlayer.new()
-		_step_player.max_poliphony = 3
+		_step_player.max_polyphony = 3
 		add_child(_step_player)
 	_step_player.pitch_scale = randf_range(0.92, 1.08)
 	_step_player.stream = _footsteps[_step_index % _footsteps.size()]
