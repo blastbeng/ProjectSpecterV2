@@ -5,13 +5,22 @@ extends StaticBody3D
 ## Interaction (Vision 6 counterplay groundwork): E toggles with a swing tween.
 
 signal state_changed(open: bool)
+signal lock_changed()
 
 const OPEN_ANGLE := deg_to_rad(105.0)
 
 var _pivot: Node3D
 var _open := false
+var _locked := false
+var _padlock: MeshInstance3D
+var _has_shackle := false
 var _creak: AudioStreamWAV
+var _rattle: AudioStreamWAV
+var _unlock: AudioStreamWAV
 var _player: AudioStreamPlayer3D
+## Rooms this door connects (portal wiring): ["Hall", "Storage"].
+## Filled by HouseBuilder when the building is assembled.
+var portal_rooms: PackedStringArray = []
 
 
 func _init(door_width := 0.95, door_height := 2.05, face := 0.0) -> void:
@@ -93,6 +102,8 @@ func _build_leaf(w: float, h: float) -> void:
 
 func _ready() -> void:
 	_creak = SfxGenerator.creak(3)
+	_rattle = SfxGenerator.rattle(3)
+	_unlock = SfxGenerator.unlock(3)
 	_player = AudioStreamPlayer3D.new()
 	_player.stream = _creak
 	_player.position = Vector3(0.4, 1.2, 0)
@@ -104,8 +115,57 @@ func is_open() -> bool:
 	return _open
 
 
+func is_locked() -> bool:
+	return _locked
+
+
+## Locked variant (Vision 6 objectives): a locked door shows a padlock on the
+## hall face and refuses to swing until unlocked. Entity door-powers later
+## call unlock()/lock() directly.
+func set_locked(locked: bool, show_pad := true) -> void:
+	_locked = locked
+	if _padlock == null and show_pad:
+		_add_padlock()
+	if _padlock != null:
+		_padlock.visible = locked
+	lock_changed.emit()
+
+
+## One-way entry: this room's door is always lockable from the hall side
+## (Vision 6 groundwork for "entity blocks a room").
+func unlock() -> void:
+	if not _locked:
+		return
+	_locked = false
+	if _padlock != null:
+		_padlock.visible = false
+	lock_changed.emit()
+
+
+func lock() -> void:
+	if _open:
+		return  # cannot lock a swinging leaf
+	if _padlock == null:
+		_add_padlock()
+	_locked = true
+	if _padlock != null:
+		_padlock.visible = true
+	lock_changed.emit()
+
+
 func toggle() -> void:
+	interact()
+
+
+## Unified interaction entry point: rattle -> unlock -> swing.
+func interact() -> void:
+	if _locked:
+		_player.stream = _rattle
+		_player.pitch_scale = 1.0
+		_player.play()
+		return
 	_open = not _open
+	_player.stream = _creak
 	_player.pitch_scale = randf_range(0.85, 1.15)
 	_player.play()
 	var target := OPEN_ANGLE if _open else 0.0
@@ -116,4 +176,48 @@ func toggle() -> void:
 
 
 func interaction_prompt() -> String:
+	if _locked:
+		return "E — locked"
 	return "E — open door" if not _open else "E — close door"
+
+
+## Padlock on the hall-face knob side: body box + U-shackle made of three
+## thin metal boxes, hung on the leaf so it swings with the door.
+func _add_padlock() -> void:
+	_has_shackle = true
+	var w := 0.95
+	_padlock = MeshInstance3D.new()
+	var body := BoxMesh.new()
+	body.size = Vector3(0.10, 0.13, 0.035)
+	_padlock.mesh = body
+	var mat := StandardMaterial3D.new()
+	mat.albedo_color = Color("6e6a5f")
+	mat.metallic = 0.75
+	mat.roughness = 0.45
+	_padlock.material_override = mat
+	# Hang from the knob, below it, proud of the leaf face.
+	_padlock.position = Vector3(w - 0.12, 0.92, 0.075)
+	var lock_body := StaticBody3D.new()
+	var cs := CollisionShape3D.new()
+	var shape := BoxShape3D.new()
+	shape.size = Vector3(0.11, 0.20, 0.05)
+	cs.shape = shape
+	cs.position = Vector3(0, 0.035, 0)
+	lock_body.add_child(cs)
+	_padlock.add_child(lock_body)
+	for o in [-0.035, 0.035]:
+		var arm := MeshInstance3D.new()
+		var am := BoxMesh.new()
+		am.size = Vector3(0.012, 0.06, 0.012)
+		arm.mesh = am
+		arm.material_override = mat
+		arm.position = Vector3(o, 0.075, 0)
+		_padlock.add_child(arm)
+	var arm_top := MeshInstance3D.new()
+	var tm := BoxMesh.new()
+	tm.size = Vector3(0.082, 0.012, 0.012)
+	arm_top.mesh = tm
+	arm_top.material_override = mat
+	arm_top.position = Vector3(0, 0.10, 0)
+	_padlock.add_child(arm_top)
+	_pivot.add_child(_padlock)

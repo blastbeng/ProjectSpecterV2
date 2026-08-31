@@ -58,6 +58,60 @@ static func footstep(variant := 0) -> AudioStreamWAV:
 	return _to_wav(samples)
 
 
+## Locked-door rattle: short metal knob jangles against the latch plate.
+static func rattle(seed_value := 1) -> AudioStreamWAV:
+	var rng := RandomNumberGenerator.new()
+	rng.seed = seed_value
+	var duration := 0.35
+	var n := int(duration * RATE)
+	var samples := PackedFloat32Array()
+	samples.resize(n)
+	# Three knob strikes; each strike is a bright metallic burst with fast decay.
+	for s in range(3):
+		var strike_t := float(s) * 0.11 + rng.randf_range(-0.01, 0.01)
+		var f0 := rng.randf_range(2100.0, 2900.0)
+		for i in int(0.06 * RATE):
+			var t := float(i) / RATE
+			var idx := int((strike_t + t) * RATE)
+			if idx >= n:
+				break
+			var phase := TAU * f0 * t
+			var body := sin(phase) + 0.6 * sin(2.7 * phase) + 0.3 * sin(5.3 * phase)
+			# Hard attack, exponential ring.
+			var env := exp(-t * 55.0) * minf(t / 0.004, 1.0)
+			samples[idx] += body * env * 0.22
+	return _to_wav(samples)
+
+
+## Brass key turn: two low clicks plus a smooth mid-freq scrape sweep.
+static func unlock(seed_value := 1) -> AudioStreamWAV:
+	var rng := RandomNumberGenerator.new()
+	rng.seed = seed_value
+	var duration := 0.5
+	var n := int(duration * RATE)
+	var samples := PackedFloat32Array()
+	samples.resize(n)
+	var phase := 0.0
+	for i in n:
+		var t := float(i) / RATE
+		# Continuous key-in-cylinder rasp: rising frequency sweep with tremble.
+		var f := 340.0 + 520.0 * t + 90.0 * sin(t * 61.0)
+		phase += TAU * f / RATE
+		var rasp := sin(phase) * 0.35 * (0.5 + 0.5 * sin(t * 95.0 + 3.0))
+		var amp := minf(t / 0.03, 1.0) * minf((duration - t) / 0.18, 1.0)
+		samples[i] += rasp * amp
+	# Two detent clicks (key passes tumblers).
+	for ct in [0.09, 0.31]:
+		for i in int(0.02 * RATE):
+			var t := float(i) / RATE
+			var idx := int(ct * RATE) + i
+			if idx >= n:
+				break
+			var c := rng.randf_range(-1.0, 1.0) * exp(-t * 260.0) * 0.5
+			samples[idx] += c
+	return _to_wav(samples)
+
+
 ## Stick-slip door creak: dragging saw partial with wobble + tremble envelope.
 static func creak(seed_value := 1) -> AudioStreamWAV:
 	var rng := RandomNumberGenerator.new()

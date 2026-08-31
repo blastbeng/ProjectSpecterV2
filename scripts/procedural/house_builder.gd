@@ -92,15 +92,26 @@ func _baseboard_x_run(z: float, x0: float, x1: float, doors: Array) -> void:
 		_place(_box(Vector3(w - 0.02, 0.12, 0.03), MaterialFactory.trim()), Vector3(r.x + w / 2.0, 0.06, z))
 
 
+## Room-name keys of _doors_by_room (kept in step with the layout constants).
+const ROOMS := ["Kitchen", "Bedroom", "Bathroom", "Storage"]
+
+var _doors_by_room := {}
+var _seeded_lock_room := ""
+
 ## Door assembly in an X-run doorway. face 0: hinge at west jamb, swings -z.
-func _door_x(door_center_x: float, z: float, face_deg: float, door_name: String) -> void:
+## door_center_x is converted to the opening center (hinge edge + DOOR_W/2).
+func _door_x(door_center_x: float, z: float, face_deg: float, door_name: String,
+		room_a: String, room_b: String) -> void:
 	var door := InteractableDoor.new(DOOR_W, DOOR_H, face_deg)
 	door.name = door_name
-	# face 0 -> leaf spans +x from hinge; place hinge at opening's left edge.
-	# face 180 -> local +x maps to world -x; hinge at opening's right edge.
+	door.portal_rooms = PackedStringArray([room_a, room_b])
+	# The opening was cut centered on door_center_x; the hinge must sit at an
+	# opening edge so the (door_center_x, z) point stays on the doorway line.
 	var hx := door_center_x - DOOR_W / 2.0 if absf(face_deg) < 90.0 else door_center_x + DOOR_W / 2.0
 	door.position = Vector3(hx, 0.0, z)
 	add_child(door)
+	_doors_by_room[room_a] = door
+	_doors_by_room[room_b] = door
 
 
 # ---------- shell ----------
@@ -129,10 +140,11 @@ func _build_shell() -> void:
 	_wall_z_run(3.6, 0.0, HALL_N, wall)      # kitchen | bedroom
 	_wall_z_run(3.0, HALL_S, B_D, wall)      # bathroom | storage
 	# Doors (kitchen/bedroom swing north into rooms; south pair swings south).
-	_door_x(1.3, HALL_N, 0.0, "door_kitchen")
-	_door_x(5.6, HALL_N, 0.0, "door_bedroom")
-	_door_x(1.5, HALL_S, 180.0, "door_bathroom")
-	_door_x(4.6, HALL_S, 180.0, "door_storage")
+	# Each door is wired as a portal between the hall and its room.
+	_door_x(1.3, HALL_N, 0.0, "door_kitchen", "Hall", "Kitchen")
+	_door_x(5.6, HALL_N, 0.0, "door_bedroom", "Hall", "Bedroom")
+	_door_x(1.5, HALL_S, 180.0, "door_bathroom", "Hall", "Bathroom")
+	_door_x(4.6, HALL_S, 180.0, "door_storage", "Hall", "Storage")
 	# Baseboards: hall faces of both band walls + exterior faces of each room.
 	_baseboard_x_run(HALL_N + 0.08, WT, B_W - WT, north_doors)
 	_baseboard_x_run(HALL_S - 0.08, WT, B_W - WT, south_doors)
@@ -515,10 +527,50 @@ func _crate(pos: Vector3, size: float, height: float, seed_offset := 0, rot_deg 
 	body.rotation.y = deg_to_rad(rot_deg + float((seed_offset % 20) - 10))
 
 
+## Seed-driven objective locks (locked-variant task): exactly one room is
+## locked shut before the match ("restore power first" target). The hall-side
+## padlock telegraphs which room it is.
+func _seed_locks() -> void:
+	_seeded_lock_room = _pick_locked_room()
+	if _seeded_lock_room == "":
+		return
+	var door := door_to(_seeded_lock_room)
+	if door != null:
+		door.set_locked(true)
+
+
+## The room whose door starts locked, from the layout seed.
+func _pick_locked_room() -> String:
+	# _rng may not be seeded when tests build partial layouts, so fall back
+	# to hashing the seed value itself — still deterministic.
+	var r := _rng if _rng != null else null
+	if r == null:
+		return ""
+	return ROOMS[absi(int(r.randi())) % ROOMS.size()]
+
+
+## Room whose door was locked by the layout seed ("" when none).
+func locked_room() -> String:
+	return _seeded_lock_room
+
+
 func _process(delta: float) -> void:
 	if _flicker_lamp != null and is_instance_valid(_flicker_lamp):
 		_flicker_t += delta * 9.0
 		_flicker_lamp.light_energy = 1.8 + 1.4 * _flicker_noise.get_noise_1d(_flicker_t)
+
+
+## Doors opening into the named room (portal lookup, task 1).
+## Returns [] when the room name is unknown — callers decide how to report it.
+func doors_for_room(room_name: String) -> Array:
+	var entry: Variant = _doors_by_room.get(room_name)
+	return [entry] if entry != null else []
+
+
+## The door into a specific room, or null if none exists.
+func door_to(room_name: String) -> InteractableDoor:
+	var doors: Array = doors_for_room(room_name)
+	return doors[0] if doors.size() > 0 else null
 
 
 func _ready() -> void:
@@ -533,3 +585,4 @@ func _ready() -> void:
 	_build_bathroom()
 	_build_storage()
 	_build_hall()
+	_seed_locks()

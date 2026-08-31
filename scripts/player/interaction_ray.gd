@@ -19,5 +19,7 @@ func current_prompt() -> String:
 func try_interact() -> void:
 	if is_colliding():
 		var hit := get_collider()
-		if hit and hit.has_method("toggle"):
+		if hit and hit.has_method("interact"):
+			hit.interact()
+		elif hit and hit.has_method("toggle"):
 			hit.toggle()
