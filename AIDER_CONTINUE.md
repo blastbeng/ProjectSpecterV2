@@ -78,36 +78,40 @@ start godot (Wayland):
 - Keep .godot/ and *.tmp in .gitignore (main cause of remote pull failures).
 
 ## 6. NEXT TASKS (top = next; rewrite this list as you work)
-1. Investigator humanoid + face texture + walk animation (Vision 5.7).
-2. Local player viewmodel arms (Vision 5.7: arms + tool sway/bob on camera).
-3. Room themes + prop kits beyond kitchen: bedroom, bathroom, storage (5.5).
-4. UI Theme + splash + main menu visual pass (Vision 5.9 palette/colors).
-5. Lobby -> host/join -> spawn players (ENet high-level multiplayer).
-6. EMF evidence + journal/deduction UI (Vision 6).
-7. Entity powers v1: door slam, light flicker, fake footsteps (Vision 6) —
+1. Room themes + prop kits beyond kitchen: bedroom, bathroom, storage (5.5).
+2. UI Theme + splash + main menu visual pass (Vision 5.9 palette/colors).
+3. Lobby -> host/join -> spawn players (ENet high-level multiplayer) and
+   swap the hall demo avatar for real remote-player avatars
+   (InvestigatorAvatar.drive() is the network drive API).
+4. EMF evidence + journal/deduction UI (Vision 6).
+5. Entity powers v1: door slam, light flicker, fake footsteps (Vision 6) —
    doors now expose portal_rooms + lock()/unlock() for entity blocking.
-8. Objectives + extraction activation + countdown (Vision 6) — seed-driven
+6. Objectives + extraction activation + countdown (Vision 6) — seed-driven
    locked room (house.locked_room()) is the first objective hook.
-9. Bots v1 (Vision 6).
-10. fear meter HUD + heartbeat audio (Vision 6).
-11. Android touch controls.
-12. Results screen + post-match flow.
+7. Bots v1 (Vision 6) — InvestigatorAvatar gives bots a full body already.
+8. Fear meter HUD + heartbeat audio (Vision 6).
+9. Android touch controls.
+10. Results screen + post-match flow.
 
 NOTES (session learnings, keep short):
 - V2 bootstrap DONE: addon at addons/godot_mcp, boot->menu->match chain,
   SceneRouter autoload, night env + MaterialFactory + kitchen + doors +
-  controller feel + flashlight all in and tested (tools/test.sh, 4/4 PASS).
-- Evidence loop works LOCALLY: blastpi5 has own labwc Wayland + grim;
-  run game with --rendering-method gl_compatibility, shoot with grim,
-  verify via PIL pixel stats (see memory notes).
-- REMOTE PLAYTESTER WORKS END-TO-END (2026-08-31): remote_test.sh OK,
-  playtester MCP run/step/exec/screenshots all functional through
-  SceneRouter.goto("res://scenes/match.tscn") + godot_game_time step +
-  godot_exec for state probes; run(frozen=true) boots at MainMenu (match is
-  not the main scene) — route with SceneRouter.goto then step. Earlier
-  "run_project does not spawn the game" note is obsolete.
-- Door system v2 DONE: InteractableDoor.interact() is the single entry point
-  (rattle -> unlock -> swing), padlock mesh on hall face, portal_rooms
-  metadata, HouseBuilder.doors_for_room()/door_to()/locked_room() API,
-  seed-driven locked room (seed 20260831 -> Storage). Entity/bot code should
-  call interact()/lock()/unlock(), not toggle().
+  controller feel + flashlight all in and tested (tools/test.sh, 5/5 PASS).
+- Evidence loop works LOCALLY (blastpi5 labwc + grim, verify via PIL stats).
+- REMOTE PLAYTESTER WORKS END-TO-END (2026-08-31, again confirmed):
+  run(frozen=true) -> step -> SceneRouter.goto("res://scenes/match.tscn")
+  via godot_exec -> step -> position camera via exec -> screenshot. Use
+  tools/remote-test.sh (dash, not underscore) and --restart after pulls.
+- Door system v2 DONE: interact() single entry (rattle->unlock->swing),
+  padlock mesh, portal_rooms, HouseBuilder door API, seed-driven locked room
+  (seed 20260831 -> Storage), in-game E-interaction verified on bedroom door.
+- InvestigatorAvatar DONE (2026-08-31): scripts/entities/investigator_avatar.gd,
+  primitives on pivots + face_texture_detailed() (hair/brows/iris/nose/lips/
+  stubble), walk/idle/crouch anim, drive() API for network/bots. Demo avatar
+  in match hall. Gotchas: BoxMesh +Z face renders MIRRORED (use QuadMesh +
+  cull disabled for face cards); card must sit proud of the skull sphere;
+  avatar fwd is -Z. Headless test_avatar PASS + screenshot evidence done.
+- Flashlight viewmodel has a steadying off-hand arm with mirrored sway/bob.
+- bash deny regex: substring "rm " ANYWHERE in the command text trips it
+  (commit messages containing "arm s..." were the trap; "viewmodel" too).
+  If git commit is denied, retry with a message without those substrings.
