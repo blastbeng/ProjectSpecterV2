@@ -8,6 +8,9 @@ const HOUSE_SEED := 20260831
 var _hud: MatchHUD
 var _player: PlayerController
 var _demo_avatar: InvestigatorAvatar
+# peer id -> remote avatar (Vision 5.2)
+var _remote_avatars := {}
+
 
 func _ready() -> void:
 	print("MATCH: scene ready, house seed %d" % HOUSE_SEED)
@@ -21,15 +24,21 @@ func _ready() -> void:
 	_player.position = PLAYER_SPAWN
 	# Face the window / counter side of the room.
 	_player.rotation.y = deg_to_rad(-155.0)
+	_player.add_child(PeerController.new())
 	_hud = MatchHUD.new()
 	add_child(_hud)
-	# Demo teammate in the hallway until remote player avatars are wired.
+	# Demo teammate in the hallway until a real remote peer replaces it.
 	_demo_avatar = InvestigatorAvatar.new()
 	_demo_avatar.player_index = 1
 	_demo_avatar.display_name = "Demo Investigator"
 	add_child(_demo_avatar)
 	_demo_avatar.position = Vector3(3.6, 0.0, 3.85)
 	_demo_avatar.rotation.y = deg_to_rad(-105.0)  # face card toward the hall camera
+	# Spawn avatars for peers already registered (joiner case) and future ones.
+	for id in Net.players:
+		_spawn_remote_avatar(id, Net.players[id])
+	Net.player_registered.connect(_on_player_registered)
+	Net.player_left.connect(_on_player_left)
 
 
 func _process(_delta: float) -> void:
@@ -37,6 +46,35 @@ func _process(_delta: float) -> void:
 		_hud.prompt_label.text = _player.current_prompt()
 		_hud.stamina_bar.value = _player.stamina_ratio()
 		_hud.battery_bar.value = _player.flashlight.battery_ratio()
+	# Drive remote avatars from the latest relayed motion.
+	for id in _remote_avatars:
+		if Net.remote_motion.has(id):
+			var mo: Dictionary = Net.remote_motion[id]
+			var av: InvestigatorAvatar = _remote_avatars[id]
+			av.global_position = mo["p"]
+			av.rotation.y = mo["ry"]
+			av.drive(mo["sp"], false, mo["cr"])
+
+
+func _on_player_registered(id: int, info: Dictionary) -> void:
+	_spawn_remote_avatar(id, info)
+
+
+func _on_player_left(id: int) -> void:
+	if _remote_avatars.has(id):
+		_remote_avatars[id].queue_free()
+		_remote_avatars.erase(id)
+
+
+func _spawn_remote_avatar(id: int, info: Dictionary) -> void:
+	if id == 1 or id == multiplayer.get_unique_id() or _remote_avatars.has(id):
+		return
+	var av := InvestigatorAvatar.new()
+	av.player_index = id % 4
+	av.display_name = str(info.get("name", "Investigator"))
+	add_child(av)
+	av.position = PLAYER_SPAWN + Vector3(0.9, 0.0, 0.0)
+	_remote_avatars[id] = av
 
 
 func _unhandled_input(event: InputEvent) -> void:

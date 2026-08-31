@@ -17,6 +17,7 @@ config/features=PackedStringArray("4.7")
 [autoload]
 
 SceneRouter="*res://scripts/core/scene_router.gd"
+Net="*res://scripts/core/net.gd"
 MCPGameBridge="res://addons/godot_mcp/game_bridge/mcp_game_bridge.gd"
 
 [debug]
