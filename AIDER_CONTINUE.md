@@ -80,20 +80,24 @@ start godot (Wayland):
 - Keep .godot/ and *.tmp in .gitignore (main cause of remote pull failures).
 
 ## 6. NEXT TASKS (top = next; rewrite this list as you work)
-1. Networked entity powers + journal: EntityPowers/Journal run host-only now;
-   add RPC fan-out so clients see slams/flickers and shared journal already
-   syncs captures+vote (host_add_capture/request_* ready for it).
-2. Objectives + extraction activation + countdown (Vision 6) — seed-driven
-   locked room (house.locked_room(), door lock()) is the first objective hook:
-   "find a way into <room>", restore power via breaker, extraction gate.
-3. Fear meter HUD + heartbeat audio (Vision 6): darkness+isolation+entity
-   activity feed a 0-100 meter; use SfxGenerator PCM patterns.
-4. Bots v1 (Vision 6) — InvestigatorAvatar + drive() give bots a full body;
+1. PLAYTESTER BRIDGE DOWN: godot-playtester MCP client says "closed client"
+   vs 192.168.1.29:6550 all session (remote Godot + plugin healthy, port
+   listening). Fix the MCP client side or restart AiderDesk MCP servers; do
+   a full Section 2 loop with REAL screenshots once it heals (gate: judge
+   breaker + gate + fear bar visuals vs Section 5; grim on the RPi5 showed
+   match rendering with warm lamps + night sky but frame is small/dark —
+   verify wall brightness + HUD text legibility up close).
+2. Fear -> gameplay effects (Vision 6): slower interactions above fear 80,
+   false sounds at high fear, entity hunts isolated HIGH-FEAR targets
+   (feed fear meter value into EntityPowers targeting).
+3. Bots v1 (Vision 6) — InvestigatorAvatar + drive() give bots a full body;
    navigate hotspots, log evidence like players.
-5. EMF journal polish: open-journal pause dim, per-kind icons on screen,
-   entity identification payoff (win condition once extraction exists).
+4. Entity identification payoff: journal vote + extraction gate interplay —
+   gate refuses to arm until the correct entity is voted (win condition).
+5. Results screen + post-match flow (win/lose, evidence, objectives).
 6. Android touch controls.
-7. Results screen + post-match flow.
+7. Countdown-end consequences: extraction failed -> entity gets a kill
+   window / match loss path (results screen dependency).
 
 NOTES (session learnings, keep short):
 
@@ -141,3 +145,19 @@ NOTES (session learnings, keep short):
 - bash deny regex: substring "rm " ANYWHERE in the command text trips it
   (commit messages containing "arm s..." were the trap; "viewmodel" too).
   If git commit is denied, retry with a message without those substrings.
+- 2026-08-31 SESSION (3 iterations, all pushed): networked entity powers
+  (reliable authority RPC, positions address lights, doors by node path),
+  objective pipeline (locked room -> breaker -> gate -> 60 s countdown),
+  fear meter (darkness+isolation+activity, heartbeat, sway, HUD).
+  11 headless tests + net_powers 2-process test all PASS in tools/test.sh.
+- Godot 4.7.2 multiplayer learnings: Node.multiplayer is read-only (no
+  custom_multiplayer in g4) — one default MultiplayerAPI, explicit identical
+  node names each side; SceneTree --script tests use root.get_multiplayer();
+  Engine.max_fps=60 in net tests (uncapped FPS burns frame-waits and kills
+  peers mid-RPC); reliable channel for rare gameplay events; atomic JSON
+  status files (tmp+rename) for cross-process test assertions.
+- New tooling: tools/net_powers_test.sh (2-process net test), --quick-match
+  boot route for CI screenshot capture, tools/local_shot.sh + shot_stats.sh
+  (RPi5 labwc grim fallback loop with brightness assertions).
+- Journal sync was ALREADY networked in v1; top task was EntityPowers only.
+  Journal works without /root/Net autoload (runtime get_node_or_null).
