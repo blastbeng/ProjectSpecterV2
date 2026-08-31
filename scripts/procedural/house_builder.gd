@@ -100,6 +100,8 @@ var _seeded_lock_room := ""
 ## EMF evidence hotspots (Vision 6): seeded points the EMF reader reacts to;
 ## each carries {pos, kind, room} for journal identification later.
 var emf_hotspots: Array = []
+## The "restore power" breaker panel (spawned inside the locked room).
+var breaker: BreakerPanel
 
 ## Door assembly in an X-run doorway. face 0: hinge at west jamb, swings -z.
 ## door_center_x is converted to the opening center (hinge edge + DOOR_W/2).
@@ -540,6 +542,30 @@ func _seed_locks() -> void:
 	var door := door_to(_seeded_lock_room)
 	if door != null:
 		door.set_locked(true)
+	_spawn_breaker()
+
+
+## Breaker panel inside the locked room, on a wall away from the doorway
+## (Vision 6 "restore power"): the objective interactable the padlock guards.
+func _spawn_breaker() -> void:
+	var bounds := _room_bounds(_seeded_lock_room)
+	var panel := BreakerPanel.new()
+	panel.name = "BreakerPanel"
+	var face := 0.0
+	var pos := Vector3.ZERO
+	# Mount on the north wall of south rooms (face +z), or the south wall of
+	# north rooms (face -z); hug the wall 1.1 m from the room's west edge.
+	var z_mid := (bounds.position.y + bounds.end.y) / 2.0
+	if _seeded_lock_room in ["Kitchen", "Bedroom"]:
+		pos = Vector3(bounds.position.x + 1.1, 0.0, bounds.end.y - 0.11)
+		face = 180.0
+	else:
+		pos = Vector3(bounds.position.x + 1.1, 0.0, bounds.position.y + 0.11)
+		face = 0.0
+	add_child(panel)
+	panel.position = pos
+	panel.rotation.y = deg_to_rad(face)
+	breaker = panel
 
 
 ## The room whose door starts locked, from the layout seed.

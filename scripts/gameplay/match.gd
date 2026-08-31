@@ -1,18 +1,27 @@
 extends Node3D
 ## Match scene: assembles night environment, the first dressed room and the
 ## player spawn. Procedural building grows here iteration by iteration.
+## Objective pipeline (Vision 6): get into the locked room -> restore power
+## (unlock) -> arm extraction -> survive a 60 s loud countdown to escape.
 
 const PLAYER_SPAWN := Vector3(2.9, 0.1, 4.1)
 const HOUSE_SEED := 20260831
+const EXTRACT_TIME_S := 60.0
 
 var _hud: MatchHUD
 var _player: PlayerController
 var _journal: Journal
 var _powers: EntityPowers
+var _house: HouseBuilder
 var _demo_avatar: InvestigatorAvatar
+var _extract_gate: ExtractionGate
 # peer id -> remote avatar (Vision 5.2)
 var _remote_avatars := {}
 var _toast_cooldown := 0.0
+# Objective stage machine: "locked_room" -> "power" -> "extract" -> "flee".
+var _stage := "locked_room"
+var _extract_left := 0.0
+var _extract_running := false
 
 
 func _ready() -> void:
@@ -21,6 +30,7 @@ func _ready() -> void:
 	var house := HouseBuilder.new()
 	house.seed_value = HOUSE_SEED
 	add_child(house)
+	_house = house
 	_player = PlayerController.new()
 	_player.name = "Player"
 	add_child(_player)
@@ -56,6 +66,14 @@ func _ready() -> void:
 	_powers.name = "EntityPowers"
 	add_child(_powers)
 	_powers.setup(house, _player)
+	# Objective pipeline (Vision 6): breaker inside the locked room + the
+	# extraction gate at the hall's west end unlock the escape countdown.
+	if house.breaker != null:
+		house.breaker.power_restored.connect(_on_power_restored)
+	for door in house.doors_for_room(house.locked_room()):
+		(door as InteractableDoor).state_changed.connect(_on_locked_door_opened)
+	_spawn_extract_gate()
+	_hud.set_objective(_objective_text())
 
 
 func _process(delta: float) -> void:
@@ -67,6 +85,66 @@ func _process(delta: float) -> void:
 		_hud.stamina_bar.value = _player.stamina_ratio()
 		_hud.battery_bar.value = _player.flashlight.battery_ratio()
 		_hud.set_emf(_player.emf.strength, _player.emf.level)
+	if _extract_running:
+		_extract_left -= delta
+		_hud.set_extract_timer(maxf(_extract_left, 0.0))
+		if _extract_left <= 0.0:
+			_extract_running = false
+			_hud.show_extract_failed()
+
+
+func _objective_text() -> String:
+	match _stage:
+		"locked_room":
+			return "Find a way into the %s" % _house.locked_room().to_lower()
+		"power":
+			return "Restore power (breaker is in the %s)" % _house.locked_room().to_lower()
+		"extract":
+			return "Reach the extraction gate (hall, west end)"
+		"flee":
+			return "ESCAPE — through the gate, NOW!"
+	return ""
+
+
+func _on_locked_door_opened(_open: bool) -> void:
+	# The padlocked objective room's door moved; if it is now open and not
+	# locked, the investigators found their way in: advance to power stage.
+	if _stage != "locked_room":
+		return
+	var door := _house.door_to(_house.locked_room())
+	if door != null and not door.is_locked() and door.is_open():
+		_stage = "power"
+		_hud.set_objective(_objective_text())
+
+
+func _on_power_restored() -> void:
+	if _stage == "done":
+		return
+	# Power back: the locked room's door unlocks, extraction activates.
+	for door in _house.doors_for_room(_house.locked_room()):
+		(door as InteractableDoor).unlock()
+	_stage = "extract"
+	_extract_gate.activate()
+	_hud.set_objective(_objective_text())
+	_toast("Power restored — extraction is active")
+
+
+func _on_extraction_started() -> void:
+	_extract_running = true
+	_extract_left = EXTRACT_TIME_S
+	_stage = "flee"
+	_hud.show_extract_countdown(EXTRACT_TIME_S)
+	_hud.set_objective(_objective_text())
+
+
+func _spawn_extract_gate() -> void:
+	_extract_gate = ExtractionGate.new()
+	_extract_gate.name = "ExtractionGate"
+	add_child(_extract_gate)
+	# West end of the hall, facing along the corridor (z-run ends at x=0).
+	_extract_gate.position = Vector3(0.55, 0.0, 3.85)
+	_extract_gate.rotation.y = deg_to_rad(-90.0)
+	_extract_gate.extraction_started.connect(_on_extraction_started)
 	# Drive remote avatars from the latest relayed motion.
 	for id in _remote_avatars:
 		if Net.remote_motion.has(id):

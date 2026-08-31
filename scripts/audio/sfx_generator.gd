@@ -58,6 +58,38 @@ static func footstep(variant := 0) -> AudioStreamWAV:
 	return _to_wav(samples)
 
 
+## Objective "power restored": rising two-tone hum + relay thunk (Vision 6).
+static func power_up(seed_value := 1) -> AudioStreamWAV:
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 700 + absi(seed_value)
+	var duration := 1.1
+	var n := int(duration * RATE)
+	var samples := PackedFloat32Array()
+	samples.resize(n)
+	var phase := 0.0
+	var phase2 := 0.0
+	for i in n:
+		var t := float(i) / RATE
+		# Rising hum: 55 -> 110 Hz with a fifth layered in halfway.
+		var f := 55.0 + 55.0 * minf(t / duration, 1.0)
+		phase += TAU * f / RATE
+		phase2 += TAU * f * 1.5 / RATE
+		var hum := sin(phase) * 0.4
+		var fifth := sin(phase2) * 0.22 * (0.0 if t < 0.45 else minf((t - 0.45) / 0.2, 1.0))
+		# Envelope: ramp up, hold, decay at the tail.
+		var env := minf(t / 0.15, 1.0)
+		if t > duration - 0.25:
+			env *= (duration - t) / 0.25
+		# Relay thunk at t = 0.62 s.
+		var thunk := 0.0
+		if t > 0.6 and t < 0.66:
+			thunk = sin(TAU * 90.0 * (t - 0.6)) * (0.66 - t) * 6.0
+		# Faint machine fizz.
+		var fizz := rng.randf_range(-1.0, 1.0) * 0.03 * env
+		samples[i] = clampf((hum + fifth + thunk) * env + fizz, -1.0, 1.0)
+	return _to_wav(samples)
+
+
 ## Locked-door rattle: short metal knob jangles against the latch plate.
 static func rattle(seed_value := 1) -> AudioStreamWAV:
 	var rng := RandomNumberGenerator.new()

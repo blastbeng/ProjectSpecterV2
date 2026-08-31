@@ -8,6 +8,8 @@ var stamina_bar: ProgressBar
 var battery_bar: ProgressBar
 var emf_bar: ProgressBar
 var emf_label: Label
+var objective_label: Label
+var extract_label: Label
 
 func _ready() -> void:
 	prompt_label = Label.new()
@@ -119,6 +121,41 @@ func _ready() -> void:
 	emf_label.visible = false
 	add_child(emf_label)
 
+	# Objective tracker, top-center (Vision 5.9).
+	objective_label = Label.new()
+	objective_label.text = ""
+	objective_label.anchor_left = 0.5
+	objective_label.anchor_right = 0.5
+	objective_label.anchor_top = 0.0
+	objective_label.anchor_bottom = 0.0
+	objective_label.grow_horizontal = Control.GROW_DIRECTION_BOTH
+	objective_label.offset_top = 14.0
+	objective_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	objective_label.add_theme_font_size_override("font_size", 17)
+	objective_label.add_theme_color_override("font_color", Color("c9b458"))
+	objective_label.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.8))
+	objective_label.add_theme_constant_override("shadow_offset_x", 1)
+	objective_label.add_theme_constant_override("shadow_offset_y", 1)
+	add_child(objective_label)
+
+	# Extraction countdown, big and alarming, appears under the objective.
+	extract_label = Label.new()
+	extract_label.text = ""
+	extract_label.anchor_left = 0.5
+	extract_label.anchor_right = 0.5
+	extract_label.anchor_top = 0.0
+	extract_label.anchor_bottom = 0.0
+	extract_label.grow_horizontal = Control.GROW_DIRECTION_BOTH
+	extract_label.offset_top = 40.0
+	extract_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	extract_label.add_theme_font_size_override("font_size", 30)
+	extract_label.add_theme_color_override("font_color", Color("d84a3a"))
+	extract_label.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.85))
+	extract_label.add_theme_constant_override("shadow_offset_x", 2)
+	extract_label.add_theme_constant_override("shadow_offset_y", 2)
+	extract_label.visible = false
+	add_child(extract_label)
+
 	# Bottom-right hint line (Vision 5.9 HUD) — mirrors keybinds to the player.
 	var hint := Label.new()
 	hint.text = "WASD move · SHIFT sprint · CTRL crouch · E use · TAB journal"
@@ -147,3 +184,24 @@ func show_emf(on: bool) -> void:
 func set_emf(strength01: float, level5: int) -> void:
 	emf_bar.value = clampf(strength01, 0.0, 1.0)
 	emf_label.text = "LV %d" % level5 if strength01 > 0.02 else ""
+
+
+## Objective tracker line, top-center.
+func set_objective(text: String) -> void:
+	objective_label.text = "◆ %s" % text if text != "" else ""
+
+
+## Loud countdown under the objective once extraction is armed.
+func show_extract_countdown(seconds: float) -> void:
+	extract_label.visible = true
+	extract_label.add_theme_color_override("font_color", Color("d84a3a"))
+	set_extract_timer(seconds)
+
+
+func set_extract_timer(seconds: float) -> void:
+	extract_label.text = "ESCAPE IN %d" % int(ceilf(seconds))
+
+
+func show_extract_failed() -> void:
+	extract_label.text = "EXTRACTION LOST"
+	extract_label.add_theme_color_override("font_color", Color("8a2020"))
