@@ -30,6 +30,8 @@ Asymmetric PvP first-person horror. Godot 4.x, GDScript only.
    screenshot or clean-run evidence.
 4. One small complete change per iteration. No giant rewrites.
 5. Testing rules live in aider_continue.md — follow them exactly.
+6. Always scrape the web and github (using mcp tools or whatever) for documentations.
+7. Always scrape the web and github (using mcp tools or whatever) to understand how to build this complex game.
 
 ## 3. PRIORITY (choose next work in this order)
 1. Atmosphere and visual believability (Section 5) — atmosphere IS the horror.
