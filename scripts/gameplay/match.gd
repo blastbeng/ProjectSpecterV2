@@ -34,6 +34,10 @@ func _ready() -> void:
 	add_child(_demo_avatar)
 	_demo_avatar.position = Vector3(3.6, 0.0, 3.85)
 	_demo_avatar.rotation.y = deg_to_rad(-105.0)  # face card toward the hall camera
+	# Evidence layer (Vision 6): house hotspots feed our reader; J toggles it.
+	_player.emf.set_hotspots(house.emf_hotspots)
+	_player.emf.toggle(false)
+	_hud.set_emf(0.0, 1)
 	# Spawn avatars for peers already registered (joiner case) and future ones.
 	for id in Net.players:
 		_spawn_remote_avatar(id, Net.players[id])
@@ -46,6 +50,7 @@ func _process(_delta: float) -> void:
 		_hud.prompt_label.text = _player.current_prompt()
 		_hud.stamina_bar.value = _player.stamina_ratio()
 		_hud.battery_bar.value = _player.flashlight.battery_ratio()
+		_hud.set_emf(_player.emf.strength, _player.emf.level)
 	# Drive remote avatars from the latest relayed motion.
 	for id in _remote_avatars:
 		if Net.remote_motion.has(id):
@@ -96,3 +101,6 @@ func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventKey and event.pressed and not event.echo:
 		if event.physical_keycode == KEY_E:
 			_player.try_interact()
+		elif event.physical_keycode == KEY_J:
+			_player.emf.toggle(not _player.emf.is_on())
+			_hud.show_emf(_player.emf.is_on())

@@ -112,6 +112,24 @@ static func unlock(seed_value := 1) -> AudioStreamWAV:
 	return _to_wav(samples)
 
 
+## EMF reader beep: two-tone "dut-doo" chirp; pitch_scale raises per level.
+static func emf_beep() -> AudioStreamWAV:
+	var n := int(0.11 * RATE)
+	var samples := PackedFloat32Array()
+	samples.resize(n)
+	var phase := 0.0
+	var phase2 := 0.0
+	for i in n:
+		var t := float(i) / RATE
+		var f := 1180.0 if t < 0.05 else 1560.0
+		phase += TAU * f / RATE
+		phase2 += TAU * (f * 2.01) / RATE
+		var env := minf(t / 0.005, 1.0) * exp(-t * 26.0)
+		var body := sin(phase) * 0.7 + sin(phase2) * 0.25
+		samples[i] = clampf(body * env * 0.4, -1.0, 1.0)
+	return _to_wav(samples)
+
+
 ## Stick-slip door creak: dragging saw partial with wobble + tremble envelope.
 static func creak(seed_value := 1) -> AudioStreamWAV:
 	var rng := RandomNumberGenerator.new()

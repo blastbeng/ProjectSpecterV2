@@ -6,6 +6,8 @@ extends CanvasLayer
 var prompt_label: Label
 var stamina_bar: ProgressBar
 var battery_bar: ProgressBar
+var emf_bar: ProgressBar
+var emf_label: Label
 
 func _ready() -> void:
 	prompt_label = Label.new()
@@ -79,3 +81,50 @@ func _ready() -> void:
 	battery_bar.add_theme_stylebox_override("fill", bb)
 	battery_bar.add_theme_stylebox_override("background", sb_bg)
 	add_child(battery_bar)
+
+	# EMF meter bottom-left (Vision 5.9 HUD): warm accent fill + level tag.
+	# Hidden until the reader is switched on with J.
+	var emf_fill := StyleBoxFlat.new()
+	emf_fill.bg_color = Color("c9b458")
+	emf_fill.set_corner_radius_all(3)
+	emf_bar = ProgressBar.new()
+	emf_bar.min_value = 0.0
+	emf_bar.max_value = 1.0
+	emf_bar.value = 0.0
+	emf_bar.show_percentage = false
+	emf_bar.anchor_left = 0.0
+	emf_bar.anchor_right = 0.0
+	emf_bar.anchor_top = 0.93
+	emf_bar.anchor_bottom = 0.93
+	emf_bar.offset_left = 24.0
+	emf_bar.offset_right = 144.0
+	emf_bar.offset_top = -5.0
+	emf_bar.offset_bottom = 5.0
+	emf_bar.add_theme_stylebox_override("fill", emf_fill)
+	emf_bar.add_theme_stylebox_override("background", sb_bg)
+	emf_bar.visible = false
+	add_child(emf_bar)
+	emf_label = Label.new()
+	emf_label.text = ""
+	emf_label.anchor_left = 0.0
+	emf_label.anchor_right = 0.0
+	emf_label.anchor_top = 0.93
+	emf_label.anchor_bottom = 0.93
+	emf_label.offset_left = 152.0
+	emf_label.offset_right = 240.0
+	emf_label.offset_top = -11.0
+	emf_label.offset_bottom = 11.0
+	emf_label.add_theme_font_size_override("font_size", 14)
+	emf_label.add_theme_color_override("font_color", Color("c9b458"))
+	emf_label.visible = false
+	add_child(emf_label)
+
+
+func show_emf(on: bool) -> void:
+	emf_bar.visible = on
+	emf_label.visible = on
+
+
+func set_emf(strength01: float, level5: int) -> void:
+	emf_bar.value = clampf(strength01, 0.0, 1.0)
+	emf_label.text = "LV %d" % level5 if strength01 > 0.02 else ""

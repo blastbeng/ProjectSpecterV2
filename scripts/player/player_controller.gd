@@ -32,6 +32,7 @@ var _last_look_delta := Vector2.ZERO
 var camera: Camera3D
 var interact_ray: InteractionRay
 var flashlight: Flashlight
+var emf: EmfReader
 var stamina := STAMINA_MAX
 
 
@@ -57,6 +58,10 @@ func _ready() -> void:
 
 	flashlight = Flashlight.new()
 	camera.add_child(flashlight)
+
+	# EMF reader rides the camera's left side; hotspots arrive from Match.
+	emf = EmfReader.new()
+	camera.add_child(emf)
 
 	for v in range(4):
 		_footsteps.append(SfxGenerator.footstep(v))
@@ -166,6 +171,8 @@ func _physics_process(delta: float) -> void:
 
 	# Viewmodel sway + light battery tick.
 	flashlight.update_viewmodel(_last_look_delta, speed2, delta)
+	emf.update_viewmodel(_last_look_delta, speed2, delta)
+	emf.sample(global_position + Vector3(0, EYE_HEIGHT, 0), delta)
 	_last_look_delta = Vector2.ZERO
 
 

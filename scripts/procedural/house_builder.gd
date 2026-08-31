@@ -97,6 +97,9 @@ const ROOMS := ["Kitchen", "Bedroom", "Bathroom", "Storage"]
 
 var _doors_by_room := {}
 var _seeded_lock_room := ""
+## EMF evidence hotspots (Vision 6): seeded points the EMF reader reacts to;
+## each carries {pos, kind, room} for journal identification later.
+var emf_hotspots: Array = []
 
 ## Door assembly in an X-run doorway. face 0: hinge at west jamb, swings -z.
 ## door_center_x is converted to the opening center (hinge edge + DOOR_W/2).
@@ -586,3 +589,45 @@ func _ready() -> void:
 	_build_storage()
 	_build_hall()
 	_seed_locks()
+	_seed_emf()
+
+
+## Seed-driven EMF hotspots (Vision 6 evidence layer): 2 points in the
+## padlocked objective room, 1 elsewhere. Positions are jittered inside room
+## bounds and kept away from doorways so readings pin to a location, never a
+## corridor. Kind tags hint the journal identification.
+func _seed_emf() -> void:
+	emf_hotspots.clear()
+	for room in ROOMS:
+		var count := 2 if room == _seeded_lock_room else 1
+		var bounds := _room_bounds(room)
+		var tries := 0
+		while tries < 40 and count > 0:
+			tries += 1
+			var p := Vector3(
+				_rng.randf_range(bounds.position.x + 0.45, bounds.end.x - 0.45),
+				1.0 + _rng.randf_range(-0.3, 0.6),
+				_rng.randf_range(bounds.position.y + 0.45, bounds.end.y - 0.45))
+			var door := door_to(room)
+			if door != null and Vector2(p.x, p.z).distance_to(Vector2(door.position.x, door.position.z)) < 1.3:
+				continue  # too close to the doorway: retry
+			var kinds := ["cold spot", "electrical hum", "object poltergeist", "door rattle", "static breath"]
+			emf_hotspots.append({
+				"pos": p, "kind": kinds[_rng.randi() % kinds.size()], "room": room,
+			})
+			count -= 1
+
+
+## Interior bounds of the named room (layout-constant based; caller jitters).
+func _room_bounds(room: String) -> Rect2:
+	match room:
+		"Kitchen":
+			return Rect2(0.0, 0.0, 3.6, 3.0)
+		"Bedroom":
+			return Rect2(3.6, 0.0, 3.6, 3.0)
+		"Bathroom":
+			return Rect2(0.0, HALL_S, 3.0, B_D - HALL_S)
+		"Storage":
+			return Rect2(3.0, HALL_S, B_W - 3.0, B_D - HALL_S)
+		_:
+			return Rect2(0, 0, 1, 1)
