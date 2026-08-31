@@ -179,15 +179,17 @@ func _build_rig() -> void:
 	face.material_override = face_mat
 	# Avatar forward is -z (Godot look_at convention), so the face card sits
 	# proud of the skull on the -z side, rotated to face outward.
+	# Card must sit proud of the 0.115-radius skull or its pixels are hidden.
 	(face.mesh as BoxMesh).size = Vector3(0.225, 0.22, 0.03)
-	face.position = Vector3(0, 0.004, -0.102)
+	face.position = Vector3(0, 0.004, -0.132)
 	face.rotation.y = PI
 	_head.add_child(face)
-	var hair := _mesh(CylinderMesh.new(), _cloth(HAIR_C, 0.95))
-	(hair.mesh as CylinderMesh).top_radius = 0.098
-	(hair.mesh as CylinderMesh).bottom_radius = 0.126
-	(hair.mesh as CylinderMesh).height = 0.075
-	hair.position = Vector3(0, 0.088, -0.032)
+	# Hair as a flattened dome hugging the skull, always behind the face card.
+	var hair := _mesh(SphereMesh.new(), _cloth(HAIR_C, 0.95))
+	(hair.mesh as SphereMesh).radius = 0.117
+	(hair.mesh as SphereMesh).height = 0.234
+	hair.scale = Vector3(1.02, 0.62, 1.02)
+	hair.position = Vector3(0, 0.085, 0.012)
 	_head.add_child(hair)
 
 	# Arms and legs: pivot -> capsule child offset half-length down.
