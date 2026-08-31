@@ -9,6 +9,8 @@ var _phase := 0
 var _frames := 0
 var _player: Node3D
 var _out_prefix := "/tmp/shot_journal"
+## true = journal evidence run (default), false = entity-powers evidence run.
+var mode_journal := true
 
 
 func _ready() -> void:
@@ -16,6 +18,8 @@ func _ready() -> void:
 		var kv := arg.split("=", true, 1)
 		if kv.size() == 2 and kv[0] == "out_prefix":
 			_out_prefix = kv[1]
+		elif kv.size() == 2 and kv[0] == "mode":
+			mode_journal = kv[1] != "powers"
 	var ps: PackedScene = load("res://scenes/match.tscn")
 	# The root is still setting up children during _ready — defer the attach.
 	get_tree().root.add_child.call_deferred(ps.instantiate())
@@ -64,10 +68,23 @@ func _process(_delta: float) -> void:
 		2:
 			if _frames < 30:
 				return
-			var journal2: Journal = match_node.get_node("Journal")
-			journal2.toggle(true)
-			print("SHOT phase3 journal opening")
-			_phase = 3
+			if mode_journal:
+				var journal2: Journal = match_node.get_node("Journal")
+				journal2.toggle(true)
+				print("SHOT phase3 journal opening")
+				_phase = 3
+			else:
+				# Powers mode: point at the door, run a full presence volley.
+				var powers: EntityPowers = match_node.get_node("EntityPowers")
+				if powers == null:
+					print("SHOT result powers_missing=true")
+					get_tree().quit(1)
+					return
+				powers.cast_door_slam(_player.global_position)
+				powers.cast_flicker(_player.global_position)
+				powers.cast_fake_steps(_player.global_position)
+				print("SHOT phase3 powers volley")
+				_phase = 4
 			_frames = 0
 		3:
 			if _frames < 35:
@@ -79,3 +96,16 @@ func _process(_delta: float) -> void:
 			print("SHOT result fp=%s emf=%s journal_open=%s emf_strength=%.2f captures=%d" % [
 				ok1, ok2, journal_open, _player.emf.strength, journal3.captures.size()])
 			get_tree().quit(0 if (ok1 and ok2 and journal_open) else 1)
+		4:
+			if _frames < 12:
+				return
+			var ok1 := _save(_out_prefix + "_fp.png")
+			var ok2 := _save(_out_prefix + "_emf.png")
+			var powers2: EntityPowers = match_node.get_node("EntityPowers")
+			var slammed := 0
+			for node in match_node.find_children("*", "InteractableDoor", true, false):
+				if not node.is_open():
+					slammed += 1
+			print("SHOT result fp=%s emf=%s doors_closed=%d flicker_active=%s steps_left=%d" % [
+				ok1, ok2, slammed, powers2._flickering > 0.0, powers2.phantom_steps_played()])
+			get_tree().quit(0 if (ok1 and ok2) else 1)
