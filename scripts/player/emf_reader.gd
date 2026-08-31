@@ -19,6 +19,8 @@ var level := 1
 var battery := BATTERY_MAX
 var enabled := true
 var hotspots: Array = []  # Array of Dictionary {pos: Vector3, kind: String, room: String}
+## Strongest hotspot of the latest sample() — {kind, room} for logging (F).
+var strongest_hotspot: Dictionary = {}
 
 var _screen_mat: StandardMaterial3D
 var _img: Image
@@ -71,14 +73,20 @@ func sample(camera_pos: Vector3, delta: float) -> void:
 			_redraw_screen()
 		return
 	# Strength = closeness to the strongest hotspot (linear falloff, squared
-	# so readings drop off sharply away from the source).
+	# so readings drop off sharply away from the source). The winning hotspot
+	# is remembered so the journal logger knows WHAT was measured, not just
+	# how strongly.
 	var best := 0.0
+	var best_hs: Dictionary = {}
 	for hs in hotspots:
 		var pos: Vector3 = hs["pos"]
 		var s := 1.0 - clampf(camera_pos.distance_to(pos) / READ_RATE, 0.0, 1.0)
 		s *= s
-		best = maxf(best, s)
+		if s > best:
+			best = s
+			best_hs = hs
 	strength = best
+	strongest_hotspot = best_hs
 	var new_level := 1
 	for i in range(LEVELS.size(), 0, -1):
 		if strength >= LEVELS[i - 1] + 0.001:

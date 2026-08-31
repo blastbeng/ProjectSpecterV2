@@ -119,6 +119,25 @@ func _ready() -> void:
 	emf_label.visible = false
 	add_child(emf_label)
 
+	# Bottom-right hint line (Vision 5.9 HUD) — mirrors keybinds to the player.
+	var hint := Label.new()
+	hint.text = "WASD move · SHIFT sprint · CTRL crouch · E use · TAB journal"
+	hint.anchor_left = 1.0
+	hint.anchor_right = 1.0
+	hint.anchor_top = 1.0
+	hint.anchor_bottom = 1.0
+	hint.offset_left = -470.0
+	hint.offset_right = -16.0
+	hint.offset_top = -26.0
+	hint.offset_bottom = -8.0
+	hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	hint.add_theme_font_size_override("font_size", 13)
+	hint.add_theme_color_override("font_color", Color(0.78, 0.76, 0.66, 0.75))
+	hint.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.8))
+	hint.add_theme_constant_override("shadow_offset_x", 1)
+	hint.add_theme_constant_override("shadow_offset_y", 1)
+	add_child(hint)
+
 
 func show_emf(on: bool) -> void:
 	emf_bar.visible = on

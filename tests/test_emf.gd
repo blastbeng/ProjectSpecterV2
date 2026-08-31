@@ -3,7 +3,13 @@ extends SceneTree
 ## Checks: hotspot strength falloff + level bands, battery drain, HUD meter
 ## wiring, screen texture updates, seeded deterministic placement in bounds.
 
-func _ready() -> void:
+func _init() -> void:
+	# SceneTree --script entry point: _ready() is a Node-only virtual and is
+	# never called on MainLoop scripts, which left this test idling forever.
+	call_deferred("_run")
+
+
+func _run() -> void:
 	var failures := 0
 
 	# --- hotspot math: strong near, weak far; level clamps to 1..5
