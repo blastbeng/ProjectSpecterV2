@@ -20,6 +20,29 @@ static func _to_wav(samples: PackedFloat32Array) -> AudioStreamWAV:
 	return wav
 
 
+## Short footstep: filtered noise burst + low body thump.
+static func footstep(variant := 0) -> AudioStreamWAV:
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 100 + absi(variant)
+	var duration := 0.16
+	var n := int(duration * RATE)
+	var samples := PackedFloat32Array()
+	samples.resize(n)
+	var phase := 0.0
+	var thump_f := rng.randf_range(70.0, 95.0)
+	for i in n:
+		var t := float(i) / RATE
+		var body := 1.0 - minf(t / 0.09, 1.0)
+		body *= body
+		phase += TAU * thump_f / RATE
+		var thump := sin(phase) * body * 0.55
+		# heel scrape noise, decaying quickly
+		var noise := rng.randf_range(-1.0, 1.0) * (1.0 - t / duration) * 0.35
+		noise *= 0.5 + 0.5 * sin(t * 210.0)
+		samples[i] = clampf(thump + noise, -1.0, 1.0)
+	return _to_wav(samples)
+
+
 ## Stick-slip door creak: dragging saw partial with wobble + tremble envelope.
 static func creak(seed_value := 1) -> AudioStreamWAV:
 	var rng := RandomNumberGenerator.new()

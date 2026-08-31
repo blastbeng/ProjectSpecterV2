@@ -4,6 +4,7 @@ extends CanvasLayer
 ## Fear meter, objectives and extraction status are layered later.
 
 var prompt_label: Label
+var stamina_bar: ProgressBar
 
 func _ready() -> void:
 	prompt_label = Label.new()
@@ -32,3 +33,26 @@ func _ready() -> void:
 	crosshair.offset_top = -1.5
 	crosshair.offset_bottom = 1.5
 	add_child(crosshair)
+
+	stamina_bar = ProgressBar.new()
+	stamina_bar.min_value = 0
+	stamina_bar.max_value = 1.0
+	stamina_bar.value = 1.0
+	stamina_bar.show_percentage = false
+	stamina_bar.anchor_left = 0.5
+	stamina_bar.anchor_right = 0.5
+	stamina_bar.anchor_top = 0.93
+	stamina_bar.anchor_bottom = 0.93
+	stamina_bar.offset_left = -90
+	stamina_bar.offset_right = 90
+	stamina_bar.offset_top = -5
+	stamina_bar.offset_bottom = 5
+	stamina_bar.grow_horizontal = Control.GROW_DIRECTION_BOTH
+	var sb := StyleBoxFlat.new()
+	sb.bg_color = Color("c9b458")
+	sb.set_corner_radius_all(3)
+	var sb_bg := StyleBoxFlat.new()
+	sb_bg.bg_color = Color(0.05, 0.06, 0.08, 0.8)
+	stamina_bar.add_theme_stylebox_override("fill", sb)
+	stamina_bar.add_theme_stylebox_override("background", sb_bg)
+	add_child(stamina_bar)
