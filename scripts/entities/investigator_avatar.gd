@@ -165,19 +165,29 @@ func _build_rig() -> void:
 	(skull.mesh as SphereMesh).radius = 0.115
 	(skull.mesh as SphereMesh).height = 0.23
 	_head.add_child(skull)
+	# Neck between shoulders and skull.
+	var neck := _mesh(CylinderMesh.new(), skin_m)
+	(neck.mesh as CylinderMesh).top_radius = 0.045
+	(neck.mesh as CylinderMesh).bottom_radius = 0.055
+	(neck.mesh as CylinderMesh).height = 0.12
+	neck.position = Vector3(0, 1.50, 0)
+	_rig.add_child(neck)
 	var face := _mesh(BoxMesh.new(), null)
 	var face_mat := StandardMaterial3D.new()
 	face_mat.albedo_texture = face_texture_detailed(skin, player_index)
 	face_mat.roughness = 0.7
 	face.material_override = face_mat
+	# Avatar forward is -z (Godot look_at convention), so the face card sits
+	# proud of the skull on the -z side, rotated to face outward.
 	(face.mesh as BoxMesh).size = Vector3(0.225, 0.22, 0.03)
-	face.position = Vector3(0, 0.004, 0.102)
+	face.position = Vector3(0, 0.004, -0.102)
+	face.rotation.y = PI
 	_head.add_child(face)
 	var hair := _mesh(CylinderMesh.new(), _cloth(HAIR_C, 0.95))
 	(hair.mesh as CylinderMesh).top_radius = 0.098
 	(hair.mesh as CylinderMesh).bottom_radius = 0.126
 	(hair.mesh as CylinderMesh).height = 0.075
-	hair.position = Vector3(0, 0.088, -0.008)
+	hair.position = Vector3(0, 0.088, -0.032)
 	_head.add_child(hair)
 
 	# Arms and legs: pivot -> capsule child offset half-length down.

@@ -29,7 +29,7 @@ func _ready() -> void:
 	_demo_avatar.display_name = "Demo Investigator"
 	add_child(_demo_avatar)
 	_demo_avatar.position = Vector3(3.6, 0.0, 3.85)
-	_demo_avatar.rotation.y = deg_to_rad(75.0)
+	_demo_avatar.rotation.y = deg_to_rad(-105.0)  # face card toward the hall camera
 
 
 func _process(_delta: float) -> void:
