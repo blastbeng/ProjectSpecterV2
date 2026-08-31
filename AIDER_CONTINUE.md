@@ -78,12 +78,10 @@ start godot (Wayland):
 - Keep .godot/ and *.tmp in .gitignore (main cause of remote pull failures).
 
 ## 6. NEXT TASKS (top = next; rewrite this list as you work)
-1. Room themes + prop kits beyond kitchen: bedroom, bathroom, storage (5.5).
-2. UI Theme + splash + main menu visual pass (Vision 5.9 palette/colors).
-3. Lobby -> host/join -> spawn players (ENet high-level multiplayer) and
-   swap the hall demo avatar for real remote-player avatars
-   (InvestigatorAvatar.drive() is the network drive API).
-4. EMF evidence + journal/deduction UI (Vision 6).
+1. Lobby polish over the working ENet core: name/color entry (LineEdit exists
+   in UITheme), join-IP field, lobby status line; swap demo avatar away when a
+   real peer joins; avatar name labels (Vision 5.2 polish).
+2. EMF evidence + journal/deduction UI (Vision 6).
 5. Entity powers v1: door slam, light flicker, fake footsteps (Vision 6) —
    doors now expose portal_rooms + lock()/unlock() for entity blocking.
 6. Objectives + extraction activation + countdown (Vision 6) — seed-driven
@@ -94,6 +92,14 @@ start godot (Wayland):
 10. Results screen + post-match flow.
 
 NOTES (session learnings, keep short):
+- ENet core DONE (commits a254880, c795ab1, 911c238, 1328753): scripts/core/net.gd
+  autoload (host/join/relay_motion/signals), PeerController under local Player,
+  match.gd spawns InvestigatorAvatar per registered peer driven by drive() from
+  relayed motion. `-- --net-join` CLI hook joins 127.0.0.1 + routes to Match on
+  connected_to_host_ok. 2-peer smoke verified live on 192.168.1.29 (joiner
+  registered, avatar spawned, motion relay flowing; host screenshot shows
+  remote avatar). test_net.gd = real ENet server+client in one headless proc
+  (raw peers need hpeer.poll()/cpeer.poll() per frame).
 - V2 bootstrap DONE: addon at addons/godot_mcp, boot->menu->match chain,
   SceneRouter autoload, night env + MaterialFactory + kitchen + doors +
   controller feel + flashlight all in and tested (tools/test.sh, 5/5 PASS).
