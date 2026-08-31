@@ -80,16 +80,25 @@ start godot (Wayland):
 - Keep .godot/ and *.tmp in .gitignore (main cause of remote pull failures).
 
 ## 6. NEXT TASKS (top = next; rewrite this list as you work)
-1. PLAYTESTER BRIDGE DOWN: godot-playtester MCP client says "closed client"
-   vs 192.168.1.29:6550 all session (remote Godot + plugin healthy, port
-   listening). Fix the MCP client side or restart AiderDesk MCP servers; do
-   a full Section 2 loop with REAL screenshots once it heals (gate: judge
-   breaker + gate + fear bar visuals vs Section 5; grim on the RPi5 showed
-   match rendering with warm lamps + night sky but frame is small/dark —
-   verify wall brightness + HUD text legibility up close).
-2. Fear -> gameplay effects (Vision 6): slower interactions above fear 80,
-   false sounds at high fear, entity hunts isolated HIGH-FEAR targets
-   (feed fear meter value into EntityPowers targeting).
+1. Close-up HUD evidence on the RPi5 (Section 2.4 gate): --panic-demo runs
+   and pins fear 88 + held-E charge, but captures keep grabbing the DESKTOP
+   (window stacking on the 640x480 labwc output — grim captures topmost
+   layer, not the game). Fix stacking (raise game window / fullscreen
+   override / kill overlay apps) and take: panic prompt with hold-%, fear
+   bar at high value, warm lamp light on walls. Judged vs Section 5.
+2. Fear -> gameplay, part 2 (Vision 6): false sounds at high fear (whisper
+   burst + phantom knock behind the player), entity hunts isolated
+   HIGH-FEAR targets (Feed FearMeter.fear per-investigator into
+   EntityPowers target choice — needs per-player fear on the wire or
+   host-side computation).
+3. Bots v1 (Vision 6) — InvestigatorAvatar + drive() give bots a full body;
+   navigate hotspots, log evidence like players.
+4. Entity identification payoff: journal vote + extraction gate interplay —
+   gate refuses to arm until the correct entity is voted (win condition).
+5. Results screen + post-match flow (win/lose, evidence, objectives).
+6. Android touch controls.
+7. Countdown-end consequences: extraction failed -> entity gets a kill
+   window / match loss path (results screen dependency).
 3. Bots v1 (Vision 6) — InvestigatorAvatar + drive() give bots a full body;
    navigate hotspots, log evidence like players.
 4. Entity identification payoff: journal vote + extraction gate interplay —
@@ -100,8 +109,31 @@ start godot (Wayland):
    window / match loss path (results screen dependency).
 
 NOTES (session learnings, keep short):
-
-NOTES (session learnings, keep short):
+- 2026-08-31 EVENING SESSION: panic interactions DONE (feats + test, all
+  13 tests PASS incl. new test_panic_hold.gd): fear >= 82 hysteresis (off
+  < 75) turns E into hold-to-complete with "-- hold E NN%" prompt, shaky
+  breathing loop (SfxGenerator.breathing), panic camera tremble added to
+  fear sway, one-shot-per-press guard (held key may not re-charge), calm
+  taps restored outside panic. E-handling moved from match.gd to
+  player_controller.gd (_poll_panic_interaction in _physics_process).
+- FIXED pre-existing signal bug: power_manifest emits (kind, at) but
+  match handler took (at) — entity activity NEVER reached the fear meter
+  before. Watch signal arity when connecting RPC-ish signals.
+- PLAYTESTER BRIDGE: remote godot + port 6550 + package + TCP all healthy
+  (manual stdio handshake with npx @satelliteoflove/godot-mcp 4.1.11
+  succeeded!); the failure is AiderDesk's stale in-process MCP client
+  ("closed client"). Only an AiderDesk/MCP-server restart heals it —
+  next session should START there with real screenshots.
+- RPi5 grim evidence gotchas: /usr/local/bin/godot is a wrapper ->
+  godot.real (pkill -x godot misses it; pkill -f self-matches the shell).
+  Multiple stacked full-screen games silently poison captures — check
+  `pgrep -f 'godot[.]real' | wc -l` == 1 BEFORE trusting a grim frame,
+  and capture timing matters (load avg 16 when 3 games ran).
+- In-engine framebuffer capture (shot_driver) is UNUSABLE on V3D mobile
+  renderer (multi-second frames, timeouts) — use --quick-match + grim.
+- pkill -f self-match trap: `pkill -f godot.real` KILLS OUR OWN SHELL
+  (the pattern appears in the bash -c command text) -> tool exit 124, no
+  commit. Always bracket the dot: pkill -f 'godot[.]real'.
 - Journal + EMF + entity powers v1 DONE (2026-08-31): Journal autoload-style
   node in Match (TAB panel, F logs strongest_hotspot, host rpc sync), EMF
   strongest_hotspot, EntityPowers (slam/flicker/steps). Evidence drivers:
