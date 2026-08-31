@@ -137,7 +137,7 @@ func _maybe_stage_panic_demo() -> void:
 	if not ("--panic-demo" in OS.get_cmdline_user_args()):
 		return
 	_panic_demo_t += 1.0 / 60.0
-	if _panic_demo_t > 12.0:
+	if _panic_demo_t > 360.0:
 		return  # staged state stays alive for the whole capture window
 	var player := _player
 	var house := _house
@@ -166,7 +166,7 @@ func _maybe_stage_panic_demo() -> void:
 				l.light_energy = 0.0
 	_fear.fear = 88.0
 	_player.set_panic(true)
-	player.panic_hold_target_s = 3.2
+	player.panic_hold_target_s = 6.0  # slow charge so grim catches mid-hold %
 	if _panic_demo_t <= 4.0 * 1.0 / 60.0:
 		var ev := InputEventKey.new()
 		ev.physical_keycode = KEY_E
