@@ -67,7 +67,8 @@ func _on_player_left(id: int) -> void:
 
 
 func _spawn_remote_avatar(id: int, info: Dictionary) -> void:
-	if id == 1 or id == multiplayer.get_unique_id() or _remote_avatars.has(id):
+	# Skip our own registration (host stores itself under id 1) and dupes.
+	if id == multiplayer.get_unique_id() or _remote_avatars.has(id):
 		return
 	var av := InvestigatorAvatar.new()
 	av.player_index = id % 4
