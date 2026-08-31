@@ -130,6 +130,40 @@ static func emf_beep() -> AudioStreamWAV:
 	return _to_wav(samples)
 
 
+## Heavy door slam (entity power): low body thump + latch clack burst.
+static func slam(seed_value := 1) -> AudioStreamWAV:
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 700 + absi(seed_value)
+	var samples := PackedFloat32Array()
+	# Low body: 300 ms decaying sine sweep 120 -> 55 Hz.
+	var body_n := int(0.30 * RATE)
+	samples.resize(body_n)
+	var phase := 0.0
+	for i in body_n:
+		var t := float(i) / RATE
+		var f := lerpf(120.0, 55.0, t / 0.30)
+		phase += TAU * f / RATE
+		var env := (1.0 - t / 0.30)
+		env *= env
+		samples[i] = sin(phase) * env * 0.85
+	# Latch burst on top: two bright metallic clacks at 0.26 s and 0.29 s.
+	var tail_n := int(0.10 * RATE)
+	var latch_f := 0
+	for i in tail_n:
+		var t := float(i) / RATE
+		var idx := body_n + i
+		samples.resize(idx + 1)
+		var amp := 0.0
+		if t < 0.015:
+			amp = (1.0 - t / 0.015) * 0.7
+		elif t >= 0.03 and t < 0.042:
+			amp = (1.0 - (t - 0.03) / 0.012) * 0.5
+		latch_f += 1
+		var ring := sin(TAU * (2600.0 + 900.0 * sin(t * 310.0)) * t) * amp
+		samples[idx] = clampf(samples[idx] + ring, -1.0, 1.0)
+	return _to_wav(samples)
+
+
 ## Stick-slip door creak: dragging saw partial with wobble + tremble envelope.
 static func creak(seed_value := 1) -> AudioStreamWAV:
 	var rng := RandomNumberGenerator.new()

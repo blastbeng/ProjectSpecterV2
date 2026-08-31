@@ -17,6 +17,7 @@ var _has_shackle := false
 var _creak: AudioStreamWAV
 var _rattle: AudioStreamWAV
 var _unlock: AudioStreamWAV
+var _slam_stream: AudioStreamWAV
 var _player: AudioStreamPlayer3D
 ## Rooms this door connects (portal wiring): ["Hall", "Storage"].
 ## Filled by HouseBuilder when the building is assembled.
@@ -173,6 +174,27 @@ func interact() -> void:
 	tw.tween_property(_pivot, "rotation:y", target, 0.55) \
 		.set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
 	state_changed.emit(_open)
+
+
+## Entity power (Vision 6): force the leaf shut instantly with a heavy slam.
+## Works even when the leaf is locked (the entity ignores padlocks).
+func entity_slam() -> void:
+	if not _open:
+		# Closed door: hard rattle instead.
+		_player.stream = _rattle
+		_player.pitch_scale = 0.8
+		_player.play()
+		return
+	_open = false
+	var tw := create_tween()
+	tw.tween_property(_pivot, "rotation:y", 0.0, 0.12) \
+		.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
+	if _slam_stream == null:
+		_slam_stream = SfxGenerator.slam(1)
+	_player.stream = _slam_stream
+	_player.pitch_scale = randf_range(0.92, 1.05)
+	_player.play()
+	state_changed.emit(false)
 
 
 func interaction_prompt() -> String:

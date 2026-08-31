@@ -8,6 +8,7 @@ const HOUSE_SEED := 20260831
 var _hud: MatchHUD
 var _player: PlayerController
 var _journal: Journal
+var _powers: EntityPowers
 var _demo_avatar: InvestigatorAvatar
 # peer id -> remote avatar (Vision 5.2)
 var _remote_avatars := {}
@@ -50,6 +51,11 @@ func _ready() -> void:
 		_spawn_remote_avatar(id, Net.players[id])
 	Net.player_registered.connect(_on_player_registered)
 	Net.player_left.connect(_on_player_left)
+	# Entity presence (Vision 6 powers v1): acts on the house near the target.
+	_powers = EntityPowers.new()
+	_powers.name = "EntityPowers"
+	add_child(_powers)
+	_powers.setup(house, _player)
 
 
 func _process(delta: float) -> void:
