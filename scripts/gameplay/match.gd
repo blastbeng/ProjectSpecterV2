@@ -2,15 +2,18 @@ extends Node3D
 ## Match scene: assembles night environment, the first dressed room and the
 ## player spawn. Procedural building grows here iteration by iteration.
 
-const PLAYER_SPAWN := Vector3(3.9, 0.1, 2.2)
+const PLAYER_SPAWN := Vector3(2.9, 0.1, 4.1)
+const HOUSE_SEED := 20260831
 
 var _hud: MatchHUD
 var _player: PlayerController
 
 func _ready() -> void:
-	print("MATCH: scene ready")
+	print("MATCH: scene ready, house seed %d" % HOUSE_SEED)
 	add_child(NightEnvironment.new())
-	add_child(RoomBuilder.new())
+	var house := HouseBuilder.new()
+	house.seed_value = HOUSE_SEED
+	add_child(house)
 	_player = PlayerController.new()
 	_player.name = "Player"
 	add_child(_player)

@@ -22,15 +22,18 @@ func _run() -> void:
 		quit(1)
 		return
 
-	# Stand in front of the closed door, face it (door spans x 1.0..1.95 at z~4.94).
-	player.position = Vector3(1.47, 0.1, 4.25)
+	# Stand in the hallway in front of the bathroom door (spans x 1.0..2.0 at
+	# z = 4.7, hinge at the east jamb), face it.
+	player.position = Vector3(1.5, 0.1, 4.25)
 	player.rotation.y = PI
 	for i in 12:
 		await physics_frame
 
-	var door: Node = null
-	var found := root.get_node("Match").find_children("*", "InteractableDoor", true, false)
-	if found.size() > 0:
+	var door: Node = root.get_node("Match").find_child("door_bathroom", true, false)
+	if door == null:
+		door = null
+	var found: Array = root.get_node("Match").find_children("*", "InteractableDoor", true, false)
+	if door == null and found.size() > 0:
 		door = found[0]
 	if door == null:
 		print(FAIL_S, " door not found")

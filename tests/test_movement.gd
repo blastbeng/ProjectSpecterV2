@@ -22,6 +22,13 @@ func _run() -> void:
 		quit(1)
 		return
 
+	# Face west down the hallway (forward = -x at yaw -PI/2) so walking is
+	# unobstructed to the west end.
+	player.position = Vector3(6.4, 0.1, 3.85)
+	player.rotation.y = -PI / 2.0
+	for i in 12:
+		await physics_frame
+
 	# Walk: simulate W press.
 	var start := player.global_position
 	Input.action_press("ui_up") if false else null
