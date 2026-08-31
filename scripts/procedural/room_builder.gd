@@ -52,11 +52,16 @@ func _build_shell() -> void:
 	_solid(Vector3(ROOM_W, 0.1, ROOM_D), MaterialFactory.floor_wood(), Vector3(ROOM_W / 2.0, -0.05, ROOM_D / 2.0))
 	# Ceiling (decor only).
 	_place(_box(Vector3(ROOM_W, 0.1, ROOM_D), MaterialFactory.ceiling()), Vector3(ROOM_W / 2.0, CEIL_H + 0.05, ROOM_D / 2.0))
-	# Four walls.
+	# Four walls; the south wall is two segments leaving a doorway at x 1.0..2.1.
 	_wall(Vector3(ROOM_W + 2 * WT, CEIL_H, WT), MaterialFactory.wall(), Vector3(ROOM_W / 2.0, CEIL_H / 2.0, -WT / 2.0), 0.0)
-	_wall(Vector3(ROOM_W + 2 * WT, CEIL_H, WT), MaterialFactory.wall(), Vector3(ROOM_W / 2.0, CEIL_H / 2.0, ROOM_D + WT / 2.0), 0.0)
+	_wall(Vector3(1.0 + WT / 2.0, CEIL_H, WT), MaterialFactory.wall(), Vector3(0.5 - WT / 2.0, CEIL_H / 2.0, ROOM_D + WT / 2.0), 0.0)
+	_wall(Vector3(ROOM_W - 2.1, CEIL_H, WT), MaterialFactory.wall(), Vector3((2.1 + ROOM_W) / 2.0, CEIL_H / 2.0, ROOM_D + WT / 2.0), 0.0)
+	_place(_box(Vector3(1.1 + 0.3, CEIL_H - 2.05, WT), MaterialFactory.wall()), Vector3(1.55, 2.05 + (CEIL_H - 2.05) / 2.0, ROOM_D + WT / 2.0))
 	_wall(Vector3(WT, CEIL_H, ROOM_D), MaterialFactory.wall(), Vector3(-WT / 2.0, CEIL_H / 2.0, ROOM_D / 2.0), 0.0)
 	_wall(Vector3(WT, CEIL_H, ROOM_D), MaterialFactory.wall_stained(), Vector3(ROOM_W + WT / 2.0, CEIL_H / 2.0, ROOM_D / 2.0), 0.0)
+	# Split baseboard around the doorway.
+	_place(_box(Vector3(0.86, 0.12, 0.03), MaterialFactory.trim()), Vector3(0.53, 0.06, ROOM_D - 0.08))
+	_place(_box(Vector3(ROOM_W - 2.24, 0.12, 0.03), MaterialFactory.trim()), Vector3((2.24 + ROOM_W) / 2.0, 0.06, ROOM_D - 0.08))
 	# Baseboards, slightly offset inward from each wall face.
 	var inset := 0.08
 	_place(_box(Vector3(ROOM_W - 0.2, 0.12, 0.03), MaterialFactory.trim()), Vector3(ROOM_W / 2.0, 0.06, inset))
@@ -231,6 +236,13 @@ func _build_dust() -> void:
 	_place(p, Vector3(2.9, 1.95, 3.1))
 
 
+func _build_door() -> void:
+	var door := InteractableDoor.new(0.95, 2.05, 0.0)
+	# Hinge against the left jamb at x = 1.0, leaf spans toward x = 1.95.
+	door.position = Vector3(1.0, 0.0, ROOM_D - 0.06)
+	add_child(door)
+
+
 func _ready() -> void:
 	_build_shell()
 	_build_counter_run()
@@ -240,3 +252,4 @@ func _ready() -> void:
 	_build_pictures()
 	_build_lamp()
 	_build_dust()
+	_build_door()

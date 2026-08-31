@@ -18,6 +18,7 @@ var _pitch := 0.0
 var _bob_phase := 0.0
 
 var camera: Camera3D
+var interact_ray: InteractionRay
 
 
 func _ready() -> void:
@@ -36,7 +37,19 @@ func _ready() -> void:
 	add_child(camera)
 	camera.current = true
 
+	interact_ray = InteractionRay.new()
+	interact_ray.position = Vector3.ZERO
+	camera.add_child(interact_ray)
+
 	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
+
+
+func try_interact() -> void:
+	interact_ray.try_interact()
+
+
+func current_prompt() -> String:
+	return interact_ray.current_prompt()
 
 
 func _unhandled_input(event: InputEvent) -> void:
