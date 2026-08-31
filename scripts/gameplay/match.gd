@@ -7,6 +7,7 @@ const HOUSE_SEED := 20260831
 
 var _hud: MatchHUD
 var _player: PlayerController
+var _demo_avatar: InvestigatorAvatar
 
 func _ready() -> void:
 	print("MATCH: scene ready, house seed %d" % HOUSE_SEED)
@@ -22,6 +23,13 @@ func _ready() -> void:
 	_player.rotation.y = deg_to_rad(-155.0)
 	_hud = MatchHUD.new()
 	add_child(_hud)
+	# Demo teammate in the hallway until remote player avatars are wired.
+	_demo_avatar = InvestigatorAvatar.new()
+	_demo_avatar.player_index = 1
+	_demo_avatar.display_name = "Demo Investigator"
+	add_child(_demo_avatar)
+	_demo_avatar.position = Vector3(3.6, 0.0, 3.85)
+	_demo_avatar.rotation.y = deg_to_rad(75.0)
 
 
 func _process(_delta: float) -> void:
