@@ -78,27 +78,36 @@ start godot (Wayland):
 - Keep .godot/ and *.tmp in .gitignore (main cause of remote pull failures).
 
 ## 6. NEXT TASKS (top = next; rewrite this list as you work)
-1. Multi-room door wiring: doors as portals between rooms, locked variant.
-3. Investigator humanoid + face texture + walk animation (Vision 5.7).
-4. Room themes + prop kits beyond kitchen: bedroom, bathroom, storage (5.5).
-5. UI Theme + splash + main menu visual pass (Vision 5.9 palette/colors).
-6. Lobby -> host/join -> spawn players (ENet high-level multiplayer).
-7. EMF evidence + journal/deduction UI (Vision 6).
-8. Entity powers v1: door slam, light flicker, fake footsteps (Vision 6).
-9. Objectives + extraction activation + countdown (Vision 6).
-10. Bots v1 (Vision 6).
-11. fear meter HUD + heartbeat audio (Vision 6).
-12. Android touch controls.
-13. Results screen + post-match flow.
+1. Investigator humanoid + face texture + walk animation (Vision 5.7).
+2. Local player viewmodel arms (Vision 5.7: arms + tool sway/bob on camera).
+3. Room themes + prop kits beyond kitchen: bedroom, bathroom, storage (5.5).
+4. UI Theme + splash + main menu visual pass (Vision 5.9 palette/colors).
+5. Lobby -> host/join -> spawn players (ENet high-level multiplayer).
+6. EMF evidence + journal/deduction UI (Vision 6).
+7. Entity powers v1: door slam, light flicker, fake footsteps (Vision 6) —
+   doors now expose portal_rooms + lock()/unlock() for entity blocking.
+8. Objectives + extraction activation + countdown (Vision 6) — seed-driven
+   locked room (house.locked_room()) is the first objective hook.
+9. Bots v1 (Vision 6).
+10. fear meter HUD + heartbeat audio (Vision 6).
+11. Android touch controls.
+12. Results screen + post-match flow.
 
 NOTES (session learnings, keep short):
 - V2 bootstrap DONE: addon at addons/godot_mcp, boot->menu->match chain,
   SceneRouter autoload, night env + MaterialFactory + kitchen + doors +
-  controller feel + flashlight all in and tested (tests/test_*.gd PASS).
+  controller feel + flashlight all in and tested (tools/test.sh, 4/4 PASS).
 - Evidence loop works LOCALLY: blastpi5 has own labwc Wayland + grim;
   run game with --rendering-method gl_compatibility, shoot with grim,
   verify via PIL pixel stats (see memory notes).
-- Remote playtester (192.168.1.29:6550) is UP via remote editor
-  (setsid nohup godot --editor, see memory); godot-playtester MCP connects,
-  but its run_project does NOT spawn the game remotely (middleware bug);
-  local-run-based evidence is the fallback. Re-verify next session.
+- REMOTE PLAYTESTER WORKS END-TO-END (2026-08-31): remote_test.sh OK,
+  playtester MCP run/step/exec/screenshots all functional through
+  SceneRouter.goto("res://scenes/match.tscn") + godot_game_time step +
+  godot_exec for state probes; run(frozen=true) boots at MainMenu (match is
+  not the main scene) — route with SceneRouter.goto then step. Earlier
+  "run_project does not spawn the game" note is obsolete.
+- Door system v2 DONE: InteractableDoor.interact() is the single entry point
+  (rattle -> unlock -> swing), padlock mesh on hall face, portal_rooms
+  metadata, HouseBuilder.doors_for_room()/door_to()/locked_room() API,
+  seed-driven locked room (seed 20260831 -> Storage). Entity/bot code should
+  call interact()/lock()/unlock(), not toggle().
