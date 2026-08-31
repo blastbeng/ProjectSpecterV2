@@ -1,5 +1,6 @@
 extends Node
-## Boot: entry point. Routes to the main menu.
+## Boot: entry point short hold, then splash (Vision 5.9 chain: splash ->
+## menu -> match).
 
 func _ready() -> void:
-	SceneRouter.goto("res://scenes/main_menu.tscn")
+	SceneRouter.goto("res://scenes/splash.tscn")
