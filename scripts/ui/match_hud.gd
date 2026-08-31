@@ -5,6 +5,7 @@ extends CanvasLayer
 
 var prompt_label: Label
 var stamina_bar: ProgressBar
+var battery_bar: ProgressBar
 
 func _ready() -> void:
 	prompt_label = Label.new()
@@ -56,3 +57,25 @@ func _ready() -> void:
 	stamina_bar.add_theme_stylebox_override("fill", sb)
 	stamina_bar.add_theme_stylebox_override("background", sb_bg)
 	add_child(stamina_bar)
+
+	# Battery bar above the stamina bar (flashlight charge).
+	battery_bar = ProgressBar.new()
+	battery_bar.min_value = 0
+	battery_bar.max_value = 1.0
+	battery_bar.value = 1.0
+	battery_bar.show_percentage = false
+	battery_bar.anchor_left = 0.5
+	battery_bar.anchor_right = 0.5
+	battery_bar.anchor_top = 0.905
+	battery_bar.anchor_bottom = 0.905
+	battery_bar.offset_left = -60
+	battery_bar.offset_right = 60
+	battery_bar.offset_top = -4
+	battery_bar.offset_bottom = 4
+	battery_bar.grow_horizontal = Control.GROW_DIRECTION_BOTH
+	var bb := StyleBoxFlat.new()
+	bb.bg_color = Color("d8e2ea")
+	bb.set_corner_radius_all(3)
+	battery_bar.add_theme_stylebox_override("fill", bb)
+	battery_bar.add_theme_stylebox_override("background", sb_bg)
+	add_child(battery_bar)

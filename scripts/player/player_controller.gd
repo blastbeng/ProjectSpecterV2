@@ -27,9 +27,11 @@ var _stamina := STAMINA_MAX
 var _crouching := false
 var _step_accum := 0.0
 var _footsteps: Array[AudioStreamWAV] = []
+var _last_look_delta := Vector2.ZERO
 
 var camera: Camera3D
 var interact_ray: InteractionRay
+var flashlight: Flashlight
 var stamina := STAMINA_MAX
 
 
@@ -52,6 +54,9 @@ func _ready() -> void:
 	interact_ray = InteractionRay.new()
 	interact_ray.position = Vector3.ZERO
 	camera.add_child(interact_ray)
+
+	flashlight = Flashlight.new()
+	camera.add_child(flashlight)
 
 	for v in range(4):
 		_footsteps.append(SfxGenerator.footstep(v))
@@ -76,6 +81,10 @@ func _unhandled_input(event: InputEvent) -> void:
 		rotate_y(-event.relative.x * MOUSE_SENS)
 		_pitch = clampf(_pitch - event.relative.y * MOUSE_SENS, deg_to_rad(-85.0), deg_to_rad(85.0))
 		camera.rotation.x = _pitch
+		notify_look(Vector2(event.relative.x, event.relative.y))
+	elif event is InputEventKey and event.pressed and not event.echo \
+			and event.physical_keycode == KEY_F:
+		flashlight.toggle()
 	elif event.is_action_pressed("ui_cancel"):
 		if Input.mouse_mode == Input.MOUSE_MODE_CAPTURED:
 			Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
@@ -154,6 +163,14 @@ func _physics_process(delta: float) -> void:
 	var offset := sin(_bob_phase) * BOB_AMPLITUDE * bob_amount
 	camera.position.y = lerpf(camera.position.y, eye + offset, 10.0 * delta)
 	camera.position.x = cos(_bob_phase * 0.5) * BOB_AMPLITUDE * 0.4 * bob_amount
+
+	# Viewmodel sway + light battery tick.
+	flashlight.update_viewmodel(_last_look_delta, speed2, delta)
+	_last_look_delta = Vector2.ZERO
+
+
+func notify_look(delta_vec: Vector2) -> void:
+	_last_look_delta = delta_vec
 
 
 func _is_ceiling_blocked() -> bool:

@@ -25,6 +25,7 @@ func _process(_delta: float) -> void:
 	if is_instance_valid(_player) and is_instance_valid(_hud):
 		_hud.prompt_label.text = _player.current_prompt()
 		_hud.stamina_bar.value = _player.stamina_ratio()
+		_hud.battery_bar.value = _player.flashlight.battery_ratio()
 
 
 func _unhandled_input(event: InputEvent) -> void:

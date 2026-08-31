@@ -20,6 +20,21 @@ static func _to_wav(samples: PackedFloat32Array) -> AudioStreamWAV:
 	return wav
 
 
+## Tiny mechanical click for flashlight toggle.
+static func click() -> AudioStreamWAV:
+	var n := int(0.03 * RATE)
+	var samples := PackedFloat32Array()
+	samples.resize(n)
+	var phase := 0.0
+	for i in n:
+		var t := float(i) / RATE
+		phase += TAU * 1900.0 / RATE
+		var square := 1.0 if sin(phase) > 0.0 else -1.0
+		var env := 1.0 - t / 0.03
+		samples[i] = clampf(square * env * 0.5, -1.0, 1.0)
+	return _to_wav(samples)
+
+
 ## Short footstep: filtered noise burst + low body thump.
 static func footstep(variant := 0) -> AudioStreamWAV:
 	var rng := RandomNumberGenerator.new()
