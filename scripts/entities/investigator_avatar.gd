@@ -172,17 +172,16 @@ func _build_rig() -> void:
 	(neck.mesh as CylinderMesh).height = 0.12
 	neck.position = Vector3(0, 1.50, 0)
 	_rig.add_child(neck)
-	var face := _mesh(BoxMesh.new(), null)
+	# Face card: QuadMesh guarantees u-right/v-down mapping on its -z face
+	# (the BoxMesh +Z face rendered mirrored on this engine build).
+	var face := _mesh(QuadMesh.new(), null)
 	var face_mat := StandardMaterial3D.new()
 	face_mat.albedo_texture = face_texture_detailed(skin, player_index)
 	face_mat.roughness = 0.7
+	face_mat.cull_mode = BaseMaterial3D.CULL_DISABLED
 	face.material_override = face_mat
-	# Avatar forward is -z (Godot look_at convention), so the face card sits
-	# proud of the skull on the -z side, rotated to face outward.
-	# Card must sit proud of the 0.115-radius skull or its pixels are hidden.
-	(face.mesh as BoxMesh).size = Vector3(0.225, 0.22, 0.03)
-	face.position = Vector3(0, 0.004, -0.132)
-	face.rotation.y = PI
+	(face.mesh as QuadMesh).size = Vector2(0.235, 0.235)
+	face.position = Vector3(0, 0.0, -0.1135)
 	_head.add_child(face)
 	# Hair as a flattened dome hugging the skull, always behind the face card.
 	var hair := _mesh(SphereMesh.new(), _cloth(HAIR_C, 0.95))
