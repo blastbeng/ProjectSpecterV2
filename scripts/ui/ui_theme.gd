@@ -59,9 +59,9 @@ static func get_theme() -> Theme:
 	t.set_color("font_hover_color", "Button", ACCENT)
 	t.set_color("font_focus_color", "Button", ACCENT)
 	t.set_color("font_pressed_color", "Button", ACCENT)
-	t.set_font_size("Button", 17)
-	t.set_font_size("Label", 15)
-	t.set_font_size("LineEdit", 15)
+	t.set_font_size("Button", "Button", 17)
+	t.set_font_size("Label", "Label", 15)
+	t.set_font_size("LineEdit", "LineEdit", 15)
 
 	# Labels: readable default colors + soft shadow.
 	t.set_color("font_color", "Label", TEXT)
