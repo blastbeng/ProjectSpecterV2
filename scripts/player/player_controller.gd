@@ -1,0 +1,101 @@
+class_name PlayerController
+extends CharacterBody3D
+## First-person investigator controller (Vision 5.3/5.7 base).
+## Build order keeps everything in code: capsule + camera are created here,
+## so the match scene can simply add a PlayerController node.
+
+const WALK_SPEED := 3.2
+const SPRINT_SPEED := 5.8
+const ACCEL := 9.5
+const DECEL := 11.5
+const GRAVITY := 12.5
+const MOUSE_SENS := 0.0022
+const EYE_HEIGHT := 1.65
+const BOB_AMPLITUDE := 0.032
+const BOB_FREQUENCY := 8.5
+
+var _pitch := 0.0
+var _bob_phase := 0.0
+
+var camera: Camera3D
+
+
+func _ready() -> void:
+	var col := CollisionShape3D.new()
+	var cap := CapsuleShape3D.new()
+	cap.radius = 0.30
+	cap.height = 1.75
+	col.shape = cap
+	col.position = Vector3(0, 0.875, 0)
+	add_child(col)
+
+	camera = Camera3D.new()
+	camera.position = Vector3(0, EYE_HEIGHT, 0)
+	camera.fov = 75.0
+	camera.near = 0.05
+	add_child(camera)
+	camera.current = true
+
+	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
+
+
+func _unhandled_input(event: InputEvent) -> void:
+	if event is InputEventMouseMotion and Input.mouse_mode == Input.MOUSE_MODE_CAPTURED:
+		rotate_y(-event.relative.x * MOUSE_SENS)
+		_pitch = clampf(_pitch - event.relative.y * MOUSE_SENS, deg_to_rad(-85.0), deg_to_rad(85.0))
+		camera.rotation.x = _pitch
+	elif event.is_action_pressed("ui_cancel"):
+		if Input.mouse_mode == Input.MOUSE_MODE_CAPTURED:
+			Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
+		else:
+			Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
+
+
+func _read_move_input() -> Vector2:
+	var right := 0.0
+	var forward := 0.0
+	if Input.is_physical_key_pressed(KEY_D) or Input.is_physical_key_pressed(KEY_RIGHT):
+		right += 1.0
+	if Input.is_physical_key_pressed(KEY_A) or Input.is_physical_key_pressed(KEY_LEFT):
+		right -= 1.0
+	if Input.is_physical_key_pressed(KEY_W) or Input.is_physical_key_pressed(KEY_UP):
+		forward += 1.0
+	if Input.is_physical_key_pressed(KEY_S) or Input.is_physical_key_pressed(KEY_DOWN):
+		forward -= 1.0
+	# y = forward (+W), so basis * Vector3(x, 0, y) maps into local space.
+	return Vector2(right, forward)
+
+
+func _physics_process(delta: float) -> void:
+	var input_vec := _read_move_input()
+	var direction := (transform.basis * Vector3(input_vec.x, 0.0, input_vec.y))
+	if direction.length_squared() > 1.0:
+		direction = direction.normalized()
+
+	var sprinting := Input.is_physical_key_pressed(KEY_SHIFT) and input_vec.y > 0.1
+	var target_speed := SPRINT_SPEED if sprinting else WALK_SPEED
+	var target := direction * target_speed
+
+	var horiz := Vector2(velocity.x, velocity.z)
+	var rate := ACCEL if direction.length_squared() > 0.01 else DECEL
+	horiz = horiz.lerp(Vector2(target.x, target.z), clampf(rate * delta, 0.0, 1.0))
+	velocity.x = horiz.x
+	velocity.z = horiz.y
+
+	if not is_on_floor():
+		velocity.y -= GRAVITY * delta
+	elif velocity.y < 0.0:
+		velocity.y = 0.0
+
+	move_and_slide()
+
+	# Head bob: only while actually moving on the ground.
+	var speed2 := Vector2(velocity.x, velocity.z).length()
+	var bob_amount := clampf(speed2 / SPRINT_SPEED, 0.0, 1.0)
+	if is_on_floor():
+		_bob_phase += delta * BOB_FREQUENCY * bob_amount
+	else:
+		_bob_phase = lerpf(_bob_phase, roundf(_bob_phase / PI) * PI, 6.0 * delta)
+	var offset := sin(_bob_phase) * BOB_AMPLITUDE * bob_amount
+	camera.position.y = EYE_HEIGHT + offset
+	camera.position.x = cos(_bob_phase * 0.5) * BOB_AMPLITUDE * 0.4 * bob_amount
