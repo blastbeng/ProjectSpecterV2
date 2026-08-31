@@ -1,0 +1,16 @@
+.aider*
+
+*.tmp
+
+# Godot 4+ specific ignores
+.godot/
+/android/
+tools/godot/
+builds/
+
+# Translation imports
+locale/*.import
+locale/*.translation
+Library/
+Logs/
+UserSettings/
