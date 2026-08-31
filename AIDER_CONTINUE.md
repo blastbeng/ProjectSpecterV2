@@ -17,6 +17,7 @@
   Tokens: OK | GODOT_RUNNING | HOST_OFFLINE | SYNC_FAILED | GODOT_START_FAILED
 - Use bash tools/remote_test.sh --restart when the running remote Godot does
   not reflect newly pulled code (kills and relaunches it).
+- When remote server is online, launch the headless tests there via ssh instead of locally. The local machine is a slow RPI5.
 
 ## 2. ITERATION LOOP (every iteration, exactly)
 1. IMPLEMENT one small complete change (one feature / one fix / one visual
