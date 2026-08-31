@@ -80,20 +80,38 @@ start godot (Wayland):
 - Keep .godot/ and *.tmp in .gitignore (main cause of remote pull failures).
 
 ## 6. NEXT TASKS (top = next; rewrite this list as you work)
-1. Lobby polish over the working ENet core: name/color entry (LineEdit exists
-   in UITheme), join-IP field, lobby status line; swap demo avatar away when a
-   real peer joins; avatar name labels (Vision 5.2 polish).
-2. EMF evidence + journal/deduction UI (Vision 6).
-5. Entity powers v1: door slam, light flicker, fake footsteps (Vision 6) —
-   doors now expose portal_rooms + lock()/unlock() for entity blocking.
-6. Objectives + extraction activation + countdown (Vision 6) — seed-driven
-   locked room (house.locked_room()) is the first objective hook.
-7. Bots v1 (Vision 6) — InvestigatorAvatar gives bots a full body already.
-8. Fear meter HUD + heartbeat audio (Vision 6).
-9. Android touch controls.
-10. Results screen + post-match flow.
+1. Networked entity powers + journal: EntityPowers/Journal run host-only now;
+   add RPC fan-out so clients see slams/flickers and shared journal already
+   syncs captures+vote (host_add_capture/request_* ready for it).
+2. Objectives + extraction activation + countdown (Vision 6) — seed-driven
+   locked room (house.locked_room(), door lock()) is the first objective hook:
+   "find a way into <room>", restore power via breaker, extraction gate.
+3. Fear meter HUD + heartbeat audio (Vision 6): darkness+isolation+entity
+   activity feed a 0-100 meter; use SfxGenerator PCM patterns.
+4. Bots v1 (Vision 6) — InvestigatorAvatar + drive() give bots a full body;
+   navigate hotspots, log evidence like players.
+5. EMF journal polish: open-journal pause dim, per-kind icons on screen,
+   entity identification payoff (win condition once extraction exists).
+6. Android touch controls.
+7. Results screen + post-match flow.
 
 NOTES (session learnings, keep short):
+
+NOTES (session learnings, keep short):
+- Journal + EMF + entity powers v1 DONE (2026-08-31): Journal autoload-style
+  node in Match (TAB panel, F logs strongest_hotspot, host rpc sync), EMF
+  strongest_hotspot, EntityPowers (slam/flicker/steps). Evidence drivers:
+  tests/shot_journal.gd mode=powers. 9/9 tests PASS in ~40 s on RPi5.
+- tools/test.sh is now parallel (nproc jobs via xargs -P) with a per-test
+  timeout watchdog (TEST_TIMEOUT, default 120) and --audio-driver Dummy; it
+  re-runs --import automatically when a .gd is newer than the class cache
+  (fixes "Could not find type X" after pulls with new class_name scripts).
+  Gotchas fixed: SceneTree --script tests MUST use _init()+deferred _run,
+  never _ready (test_emf hung the whole suite); GDScript lambdas capture
+  locals BY VALUE (mutate arrays in signal callbacks); auto-named nodes get
+  "@Name@N" — set .name explicitly before get_node("Name").
+- Remote playtester MCP client ("closed client" error) survives editor
+  --restart poorly this session; local screenshot loop used as fallback.
 - ENet core DONE (commits a254880, c795ab1, 911c238, 1328753): scripts/core/net.gd
   autoload (host/join/relay_motion/signals), PeerController under local Player,
   match.gd spawns InvestigatorAvatar per registered peer driven by drive() from
