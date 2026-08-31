@@ -45,7 +45,7 @@ if $SSH "ss -tln | grep -q ':$PORT '"; then
   echo "        Godot already listening on :$PORT (GODOT_RUNNING)"
 else
   echo "[3/5] Port down — starting Godot on remote (Wayland) ..."
-  $SSH "export XDG_RUNTIME_DIR=/run/user/\$(id -u); WD=\$(ls \$XDG_RUNTIME_DIR 2>/dev/null | grep -m1 '^wayland-'); export WAYLAND_DISPLAY=\${WD:-wayland-0}; nohup $GODOT_BIN --path $PROJECT >/tmp/specter_godot.log 2>&1 &"
+  $SSH "export XDG_RUNTIME_DIR=/run/user/\$(id -u); WD=\$(ls \$XDG_RUNTIME_DIR 2>/dev/null | grep -m1 '^wayland-'); export WAYLAND_DISPLAY=\${WD:-wayland-0}; nohup $GODOT_BIN --path $PROJECT -e >/tmp/specter_godot.log 2>&1 &"
   echo "        waiting 10s ..."; sleep 10
   if ! $SSH "ss -tln | grep -q ':$PORT '"; then
     echo "GODOT_START_FAILED — log tail:"
