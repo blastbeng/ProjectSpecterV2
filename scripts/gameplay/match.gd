@@ -123,6 +123,55 @@ func _process(delta: float) -> void:
 			AudioServer.set_bus_volume_db(
 				AudioServer.get_bus_index("Master"),
 				linear_to_db(1.0))
+	_maybe_stage_panic_demo()
+
+
+## Evidence staging for --panic-demo: pins the staged state against the
+## fear system's own decay (re-pins fear each couple of frames), kills
+## nearby lamps + flashlight so the darkness keeps fear up, aims the
+## camera at the nearest door and synthesizes a held-E key so the
+## hold-to-interact charge is visibly mid-progress for grim screenshots.
+var _panic_demo_t := 0.0
+
+func _maybe_stage_panic_demo() -> void:
+	if not ("--panic-demo" in OS.get_cmdline_user_args()):
+		return
+	_panic_demo_t += 1.0 / 60.0
+	if _panic_demo_t > 12.0:
+		return  # staged state stays alive for the whole capture window
+	var player := _player
+	var house := _house
+	if _panic_demo_t <= 1.0 / 60.0 or _panic_demo_t > 11.5:
+		return
+	# Stage once, then keep re-pinning fear while the shots are taken.
+	var door: InteractableDoor = null
+	var best := 999.0
+	for d in house.find_children("*", "InteractableDoor", true, false):
+		var dist: float = (d as Node3D).global_position.distance_to(player.global_position)
+		if dist < best:
+			best = dist
+			door = d
+	if door == null:
+		return
+	if _panic_demo_t <= 3.0 * 1.0 / 60.0:
+		player.global_position = door.global_position + Vector3(0, 0, 1.2)
+		player.camera.look_at(door.global_position + Vector3(0, 1.0, 0))
+		var flash = player.get("flashlight")
+		if flash != null:
+			flash.enabled = false
+			flash._spot.visible = false
+		for node in player.get_tree().get_nodes_in_group("fear_lights"):
+			var l := node as OmniLight3D
+			if l.global_position.distance_to(door.global_position) < 6.0:
+				l.light_energy = 0.0
+	_fear.fear = 88.0
+	_player.set_panic(true)
+	player.panic_hold_target_s = 3.2
+	if _panic_demo_t <= 4.0 * 1.0 / 60.0:
+		var ev := InputEventKey.new()
+		ev.physical_keycode = KEY_E
+		ev.pressed = true
+		Input.parse_input_event(ev)
 
 
 func _objective_text() -> String:
