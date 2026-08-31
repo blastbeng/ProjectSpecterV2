@@ -78,9 +78,7 @@ start godot (Wayland):
 - Keep .godot/ and *.tmp in .gitignore (main cause of remote pull failures).
 
 ## 6. NEXT TASKS (top = next; rewrite this list as you work)
-1. Procedural building: hallway + 3-4 room types branching off it, seeded
-   generator (Vision 5.4/5.5; kitchen exists as RoomBuilder reference).
-2. Multi-room door wiring: doors as portals between rooms, locked variant.
+1. Multi-room door wiring: doors as portals between rooms, locked variant.
 3. Investigator humanoid + face texture + walk animation (Vision 5.7).
 4. Room themes + prop kits beyond kitchen: bedroom, bathroom, storage (5.5).
 5. UI Theme + splash + main menu visual pass (Vision 5.9 palette/colors).
