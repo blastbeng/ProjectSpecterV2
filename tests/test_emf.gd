@@ -11,11 +11,11 @@ func _ready() -> void:
 	root.add_child(emf)
 	emf.set_hotspots([{"pos": Vector3(5, 1, 5), "kind": "cold spot", "room": "Kitchen"}])
 	emf.sample(Vector3(5.1, 1, 5.1), 0.016)
-	var near := emf.strength
+	var near: float = emf.strength
 	emf.sample(Vector3(5.1, 1, 4.1), 0.016)
-	var near2 := emf.strength
+	var near2: float = emf.strength
 	emf.sample(Vector3(2.0, 1, 2.0), 0.016)
-	var far := emf.strength
+	var far: float = emf.strength
 	if not (near > 0.8 and near2 > 0.5 and far < 0.05):
 		print("EMF_TEST_FAIL strength near=%.2f near2=%.2f far=%.2f" % [near, near2, far])
 		failures += 1
