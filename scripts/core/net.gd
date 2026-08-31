@@ -36,10 +36,12 @@ func _ready() -> void:
 	multiplayer.connection_failed.connect(_on_connection_failed)
 	multiplayer.server_disconnected.connect(_on_server_disconnected)
 	# Headless smoke-test hook: a second instance launched with
-	# `-- --net-join` auto-joins 127.0.0.1 and routes straight to Match.
+	# `-- --net-join` auto-joins 127.0.0.1 and enters Match once the
+	# connection is up (after the normal boot chain has settled).
 	if "--net-join" in OS.get_cmdline_user_args():
 		join_game("127.0.0.1", "RemotePeer", "#41506b")
-		SceneRouter.goto("res://scenes/match.tscn")
+		connected_to_host_ok.connect(func() -> void:
+			SceneRouter.goto("res://scenes/match.tscn"))
 
 
 func _on_peer_connected(id: int) -> void:
