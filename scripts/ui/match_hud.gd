@@ -194,7 +194,7 @@ func _ready() -> void:
 
 	# Bottom-right hint line (Vision 5.9 HUD) — mirrors keybinds to the player.
 	var hint := Label.new()
-	hint.text = "WASD move · SHIFT sprint · CTRL crouch · E use · TAB journal"
+	hint.text = "WASD move · SHIFT sprint · CTRL crouch · E use (hold at high fear) · TAB journal"
 	hint.anchor_left = 1.0
 	hint.anchor_right = 1.0
 	hint.anchor_top = 1.0

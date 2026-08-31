@@ -20,6 +20,9 @@ const STAMINA_MAX := 100.0
 const STAMINA_DRAIN := 22.0
 const STAMINA_REGEN := 16.0
 const STAMINA_SPRINT_MIN := 12.0
+## Panic interactions (Vision 6): above this fear the E key becomes a
+## hold-to-complete bar with shaking breath audio.
+const FEAR_HOLD_THRESHOLD := 80.0
 
 var _pitch := 0.0
 var _bob_phase := 0.0
@@ -28,6 +31,17 @@ var _crouching := false
 var _step_accum := 0.0
 var _footsteps: Array[AudioStreamWAV] = []
 var _last_look_delta := Vector2.ZERO
+## Panic hold tracking (Vision 6): Match flips set_panic(true) when fear
+## crosses ~82; the E key then becomes a hold-to-complete interaction with
+## shaking-breath audio, released (hysteresis) once fear drops below ~75.
+var panic_hold_target_s := 1.1
+var _panic_hold := 0.0
+var _panicking := false
+var _holding_e := false
+var _e_was_down := false
+var _hold_fired := false
+var _panic_shaky: AudioStreamPlayer
+var _panic_breath: AudioStreamWAV
 
 var camera: Camera3D
 var interact_ray: InteractionRay
@@ -69,12 +83,24 @@ func _ready() -> void:
 	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 
 
+## Fear wiring (Vision 6): Match calls every frame with the current fear.
+func set_panic(on: bool) -> void:
+	if on == _panicking:
+		return
+	_panicking = on
+	if on:
+		_start_shaky_breath()
+	else:
+		_stop_shaky_breath()
+
+
+func is_panicking() -> bool:
+	return _panicking
+
+
+## Direct interaction (tests + scripted events bypass the hold gate).
 func try_interact() -> void:
 	interact_ray.try_interact()
-
-
-func current_prompt() -> String:
-	return interact_ray.current_prompt()
 
 
 func stamina_ratio() -> float:
@@ -94,14 +120,16 @@ func _unhandled_input(event: InputEvent) -> void:
 		_pitch = clampf(_pitch - event.relative.y * MOUSE_SENS, deg_to_rad(-85.0), deg_to_rad(85.0))
 		camera.rotation.x = _pitch
 		notify_look(Vector2(event.relative.x, event.relative.y))
-	elif event is InputEventKey and event.pressed and not event.echo \
-			and event.physical_keycode == KEY_F:
-		flashlight.toggle()
+
 	elif event.is_action_pressed("ui_cancel"):
 		if Input.mouse_mode == Input.MOUSE_MODE_CAPTURED:
 			Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 		else:
 			Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
+	elif event is InputEventKey and event.pressed and not event.echo \
+			and event.physical_keycode == KEY_F:
+		flashlight.toggle()
+
 
 
 func _read_move_input() -> Vector2:
@@ -181,6 +209,88 @@ func _physics_process(delta: float) -> void:
 	emf.update_viewmodel(_last_look_delta, speed2, delta)
 	emf.sample(global_position + Vector3(0, EYE_HEIGHT, 0), delta)
 	_last_look_delta = Vector2.ZERO
+
+	# Panic interactions (Vision 6): above FEAR_HOLD_THRESHOLD fear the E key
+	# must be HELD for panic_hold_target_s seconds to finish an interaction;
+	# below it, a tap interacts instantly. Shaky breath loops while panicking.
+	_poll_panic_interaction(delta)
+
+
+## Polls the E key each physics tick. Calm: a tap fires on the press edge.
+## While panicking, holding E on an interactable charges the hold; a
+## completed charge fires the interaction and an early release resets it.
+func _poll_panic_interaction(delta: float) -> void:
+	var e_down := Input.is_physical_key_pressed(KEY_E)
+	var pressed_edge := e_down and not _e_was_down
+	var ray := interact_ray as RayCast3D
+	var aiming := false
+	if ray != null and ray.is_colliding():
+		var hit := ray.get_collider()
+		aiming = hit != null and (hit.has_method("interact") or hit.has_method("toggle"))
+	if _panicking:
+		# One shot per key press: a fired hold waits for release before it
+		# may charge again (otherwise a held key re-toggles the same door).
+		if _hold_fired and e_down:
+			_holding_e = false
+			_panic_hold = 0.0
+			return
+		if not e_down:
+			_hold_fired = false
+		_holding_e = e_down and aiming
+		if _holding_e:
+			_panic_hold += delta
+			if _panic_hold >= panic_hold_target_s:
+				_panic_hold = 0.0
+				_hold_fired = true
+				ray.try_interact()
+		else:
+			_panic_hold = 0.0
+	else:
+		if pressed_edge and aiming:
+			ray.try_interact()
+		_holding_e = false
+		_panic_hold = 0.0
+	_e_was_down = e_down
+
+
+## Camera roll add-on while a panic hold is charging (small tremble, caps
+## well under the fear sway cap). Match adds this to the fear sway offset.
+func panic_shake() -> float:
+	if not _panicking or _panic_hold <= 0.0:
+		return 0.0
+	var t := Time.get_ticks_msec() * 0.001
+	var ramp := clampf(_panic_hold / panic_hold_target_s, 0.0, 1.0)
+	return sin(t * 26.0) * 0.006 * ramp
+
+
+## Prompt with hold progress: "Open door — hold E 45%" while charging.
+func current_prompt() -> String:
+	var base := interact_ray.current_prompt()
+	if _panicking and _holding_e and base != "":
+		var pct := int(clampf(_panic_hold / panic_hold_target_s, 0.0, 0.99) * 100.0)
+		return "%s — hold E %d%%" % [base, pct]
+	if _panicking and base != "":
+		return "%s — hold E" % base
+	return base
+
+
+func _start_shaky_breath() -> void:
+	if _panic_shaky == null:
+		_panic_shaky = AudioStreamPlayer.new()
+		_panic_shaky.volume_db = -9.0
+		_panic_shaky.bus = "Master"
+		add_child(_panic_shaky)
+	if _panic_breath == null:
+		_panic_breath = SfxGenerator.breathing(1.0)
+	_panic_shaky.stream = _panic_breath
+	if not _panic_shaky.playing:
+		_panic_shaky.play()
+
+
+func _stop_shaky_breath() -> void:
+	if _panic_shaky != null and _panic_shaky.playing:
+		_panic_shaky.stop()
+		_panic_shaky.stream = null
 
 
 func notify_look(delta_vec: Vector2) -> void:

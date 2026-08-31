@@ -23,6 +23,8 @@ var _toast_cooldown := 0.0
 var _stage := "locked_room"
 var _extract_left := 0.0
 var _extract_running := false
+# Panic interactions engaged (Vision 6): E becomes hold-to-interact.
+var _panic_interact := false
 
 
 func _ready() -> void:
@@ -106,7 +108,21 @@ func _process(delta: float) -> void:
 		if is_instance_valid(_demo_avatar):
 			crowd.append(_demo_avatar)
 		_fear.sample(delta, _player, crowd, _powers)
-		_player.set_fear_sway(_fear.sway_offset())
+		_player.set_fear_sway(_fear.sway_offset() + _player.panic_shake())
+		# Panic hysteresis: hold-to-interact engages above 82, releases below 75
+		# so meter wobble near the line does not flicker the mechanic (Vision 6).
+		if not _panic_interact and _fear.fear >= 82.0:
+			_panic_interact = true
+			_player.set_panic(true)
+			AudioServer.set_bus_volume_db(
+				AudioServer.get_bus_index("Master"),
+				linear_to_db(0.6))
+		elif _panic_interact and _fear.fear < 75.0:
+			_panic_interact = false
+			_player.set_panic(false)
+			AudioServer.set_bus_volume_db(
+				AudioServer.get_bus_index("Master"),
+				linear_to_db(1.0))
 
 
 func _objective_text() -> String:
@@ -209,9 +225,7 @@ func _spawn_remote_avatar(id: int, info: Dictionary) -> void:
 
 func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventKey and event.pressed and not event.echo:
-		if event.physical_keycode == KEY_E:
-			_player.try_interact()
-		elif event.physical_keycode == KEY_J:
+		if event.physical_keycode == KEY_J:
 			_player.emf.toggle(not _player.emf.is_on())
 			_hud.show_emf(_player.emf.is_on())
 		elif event.physical_keycode == KEY_TAB:
@@ -237,7 +251,7 @@ func _toast(text: String) -> void:
 	_toast_cooldown = 2.2
 
 
-func _on_entity_power_felt(at: Vector3) -> void:
+func _on_entity_power_felt(_kind: String, at: Vector3) -> void:
 	if is_instance_valid(_fear):
 		_fear.on_entity_power_near(at, _player)
 

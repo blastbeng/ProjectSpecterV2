@@ -58,6 +58,32 @@ static func footstep(variant := 0) -> AudioStreamWAV:
 	return _to_wav(samples)
 
 
+## Shaky breathing loop for panic (Vision 6): in/out swells of filtered
+## noise with a tremor, ~3.2 s round trip so it can loop seamlessly. When
+## strong01 approaches 1 the breath gets rougher (added jitter).
+static func breathing(strong01 := 0.8) -> AudioStreamWAV:
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 7700
+	var duration := 3.2
+	var n := int(duration * RATE)
+	var samples := PackedFloat32Array()
+	samples.resize(n)
+	var jitter_phase := 0.0
+	var lp := 0.0
+	for i in n:
+		var t := float(i) / RATE
+		# Two breath swells per loop (in at 0.2s, out at 1.8s).
+		var swell := maxf(sin(t * TAU / duration * 2.0 - TAU * 0.25), 0.0)
+		swell *= swell
+		var raw := rng.randf_range(-1.0, 1.0)
+		lp = lerpf(lp, raw, 0.12)  # soften toward breathy hiss
+		jitter_phase += TAU * 13.0 / RATE
+		var tremor := 1.0 + 0.35 * strong01 * sin(jitter_phase)
+		var body := 0.18 + 0.2 * strong01
+		samples[i] = clampf(lp * swell * tremor * body * 1.9, -1.0, 1.0)
+	return _to_wav(samples)
+
+
 ## Heartbeat: lub-dub pair of low thumps (Vision 6 fear audio).
 ## strength01 shapes tempo-irrelevant character: deeper + harder at high fear.
 static func heartbeat(strength01 := 0.5) -> AudioStreamWAV:
