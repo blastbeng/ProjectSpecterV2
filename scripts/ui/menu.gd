@@ -13,6 +13,7 @@ func _ready() -> void:
 	bg.color = UITheme.BG
 	bg.set_anchors_preset(Control.PRESET_FULL_RECT)
 	add_child(bg)
+	move_child(bg, 0)  # bg must sit below the tscn UI children or it hides them
 	add_child(UITheme.ambient_fog_layer())
 	_build_backdrop()
 	host_button.pressed.connect(_on_host)
