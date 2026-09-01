@@ -82,6 +82,10 @@ func _ready() -> void:
 	add_child(_powers)
 	_powers.setup(house, _player)
 	_powers.power_manifest.connect(_on_entity_power_felt)
+	# Bot v2: the bot flees manifested entity activity near its position.
+	_powers.power_manifest.connect(func(kind: String, at: Vector3) -> void:
+		if is_instance_valid(_bot):
+			_bot.on_entity_activity(at))
 	# Objective pipeline (Vision 6): breaker inside the locked room + the
 	# extraction gate at the hall's west end unlock the escape countdown.
 	if house.breaker != null:

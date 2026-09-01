@@ -114,6 +114,8 @@ func _door_x(door_center_x: float, z: float, face_deg: float, door_name: String,
 	# opening edge so the (door_center_x, z) point stays on the doorway line.
 	var hx := door_center_x - DOOR_W / 2.0 if absf(face_deg) < 90.0 else door_center_x + DOOR_W / 2.0
 	door.position = Vector3(hx, 0.0, z)
+	# Opening center kept for navigation (bot doorway waypoints, Vision 6).
+	door.set_meta("center_x", door_center_x)
 	add_child(door)
 	_doors_by_room[room_a] = door
 	_doors_by_room[room_b] = door
@@ -600,6 +602,22 @@ func doors_for_room(room_name: String) -> Array:
 func door_to(room_name: String) -> InteractableDoor:
 	var doors: Array = doors_for_room(room_name)
 	return doors[0] if doors.size() > 0 else null
+
+
+## Walkable doorway threshold points (bot v2 routing, Vision 6): the point
+## the door leaf covers when closed — (opening center, doorway wall line).
+## One per built door, in build order. Bots path THROUGH these instead of
+## cutting across room edges, and can check the door state at each one.
+func doorway_points() -> Array:
+	var out: Array = []
+	for d in _doors_by_room.values():
+		if d is InteractableDoor and d.has_meta("center_x"):
+			out.append({
+				"pos": Vector3(float(d.get_meta("center_x")), 0.0, d.position.z),
+				"door": d,
+				"rooms": [d.portal_rooms[0], d.portal_rooms[1]],
+			})
+	return out
 
 
 func _ready() -> void:
