@@ -83,6 +83,7 @@ func _ready() -> void:
 	_fear.name = "FearMeter"
 	add_child(_fear)
 	_fear.fear_changed.connect(func(v01: float) -> void: _hud.set_fear(v01))
+	_fear.false_sounds.setup(_player)
 	# Tag lamps so the darkness probe can find lights cheaply.
 	for node in house.find_children("*", "OmniLight3D", true, false):
 		node.add_to_group("fear_lights")

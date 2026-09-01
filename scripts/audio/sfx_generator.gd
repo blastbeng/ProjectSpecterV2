@@ -279,3 +279,76 @@ static func creak(seed_value := 1) -> AudioStreamWAV:
 		var noise := rng.randf_range(-1.0, 1.0) * 0.05 * amp
 		samples[i] = clampf((saw * 0.5 + partial + noise) * amp * 0.9, -1.0, 1.0)
 	return _to_wav(samples)
+
+
+## Whispers (Vision 6 false sounds): three breathy "voices" — band-passed
+## noise shaped by slow syllable swells — detuned and panned-static, mixing
+## into an unintelligible murmur that swells and dies over ~2.8 s.
+static func whisper_burst() -> AudioStreamWAV:
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 5150
+	var duration := 2.8
+	var n := int(duration * RATE)
+	var samples := PackedFloat32Array()
+	samples.resize(n)
+	# One low-pass state per voice; each voice breathes on its own syllable
+	# clock with its own center frequency (sibilant vs guttural).
+	var lps := [0.0, 0.0, 0.0]
+	var centers := [2400.0, 1500.0, 950.0]
+	var syll_rates := [7.3, 5.1, 3.4]
+	var phases := [0.0, 0.0, 0.0]
+	for i in n:
+		var t := float(i) / RATE
+		var mix := 0.0
+		for v in 3:
+			# syllable swell: sharpish rise, softer fall, irregular pause
+			var ph := fmod(t * syll_rates[v] + float(v) * 1.7, 1.0)
+			var swell := sin(ph * PI)
+			swell *= swell
+			# drop the voice out entirely for stretches (pauses between words)
+			var gate := 1.0 if sin(t * 0.9 + float(v) * 2.1) > -0.55 else 0.15
+			phases[v] += TAU * centers[v] / RATE
+			var raw := rng.randf_range(-1.0, 1.0)
+			lps[v] = lerpf(lps[v], raw, 0.25 + 0.1 * float(v))
+			var voiced: float = lps[v] * swell * gate
+			# faint tonal buzz under the hiss makes it read as a voice, not hiss
+			voiced += 0.12 * sin(phases[v] * (1.0 + 0.02 * float(v))) * swell * gate
+			mix += voiced * (0.85 - 0.18 * float(v))
+		# global fade in/out so bursts never click
+		var env := minf(t / 0.4, 1.0) * minf((duration - t) / 0.8, 1.0)
+		samples[i] = clampf(mix * env * 0.42, -1.0, 1.0)
+	return _to_wav(samples)
+
+
+## Phantom knock (Vision 6 false sounds): 2-4 hard wood thumps on an
+## irregular rhythm — a fist on a door where nobody stands.
+static func phantom_knock() -> AudioStreamWAV:
+	var rng := RandomNumberGenerator.new()
+	rng.seed = int(randf() * 100000.0)
+	var hits := rng.randi_range(2, 4)
+	var times: Array[float] = []
+	var t_acc := 0.05
+	for h in hits:
+		times.append(t_acc)
+		t_acc += rng.randf_range(0.22, 0.38)
+	var duration := t_acc + 0.35
+	var n := int(duration * RATE)
+	var samples := PackedFloat32Array()
+	samples.resize(n)
+	for i in n:
+		var t := float(i) / RATE
+		var s := 0.0
+		for h in hits:
+			var dt: float = t - times[h]
+			if dt > 0.0 and dt < 0.14:
+				var env := exp(-dt * 34.0)
+				var f := 128.0 + rng.randf_range(-6.0, 6.0)
+				var thump := sin(TAU * f * dt) * env
+				# knuckle crack: sharp 2nd + 3rd harmonic bite
+				thump += sin(TAU * f * 2.3 * dt) * env * 0.45
+				thump += sin(TAU * f * 3.1 * dt) * env * 0.2
+				s += thump * 0.8
+		# wood body resonance tail
+		s += sin(TAU * 92.0 * t) * 0.05 * exp(-t * 5.0)
+		samples[i] = clampf(s, -1.0, 1.0)
+	return _to_wav(samples)

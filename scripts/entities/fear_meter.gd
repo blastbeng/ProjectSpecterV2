@@ -26,12 +26,18 @@ var _entity_activity_left := 0.0
 var _sway_t := 0.0
 var _heart: AudioStreamPlayer
 var _heart_cooldown := 0.0
+## False sounds (Vision 6 fear->gameplay part 2): whisper bursts + phantom
+## knocks at high fear. Child node so Match only wires the player.
+var false_sounds: FalseSounds
 
 
 func _ready() -> void:
 	_heart = AudioStreamPlayer.new()
 	_heart.bus = "Master"
 	add_child(_heart)
+	false_sounds = FalseSounds.new()
+	false_sounds.name = "FalseSounds"
+	add_child(false_sounds)
 
 
 ## Per-frame update: Match calls every frame with its scene references.
