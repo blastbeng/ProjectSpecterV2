@@ -170,8 +170,8 @@ func _ready() -> void:
 	fear_bar.anchor_right = 1.0
 	fear_bar.anchor_top = 1.0
 	fear_bar.anchor_bottom = 1.0
-	fear_bar.offset_left = -170.0
-	fear_bar.offset_right = -40.0
+	fear_bar.offset_left = -210.0
+	fear_bar.offset_right = -80.0
 	fear_bar.offset_top = -46.0
 	fear_bar.offset_bottom = -36.0
 	fear_bar.add_theme_stylebox_override("fill", fear_fill)
@@ -183,8 +183,8 @@ func _ready() -> void:
 	fear_tag.anchor_right = 1.0
 	fear_tag.anchor_top = 1.0
 	fear_tag.anchor_bottom = 1.0
-	fear_tag.offset_left = -206.0
-	fear_tag.offset_right = -174.0
+	fear_tag.offset_left = -246.0
+	fear_tag.offset_right = -214.0
 	fear_tag.offset_top = -52.0
 	fear_tag.offset_bottom = -30.0
 	fear_tag.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
