@@ -144,6 +144,12 @@ func player_captured(kind: String, room: String) -> void:
 		request_capture.rpc_id(1, kind, room)
 
 
+## Capture from an investigator BOT (Vision 6): bots log evidence like
+## players, routed through the host path so it merges roster-wide.
+func bot_captured(kind: String, room: String) -> void:
+	host_add_capture(kind, room)
+
+
 ## Host-side capture (solo path too). Dedupes kind+room; broadcasts to peers.
 func host_add_capture(kind: String, room: String) -> void:
 	for c in captures:

@@ -14,6 +14,7 @@ var _journal: Journal
 var _powers: EntityPowers
 var _house: HouseBuilder
 var _demo_avatar: InvestigatorAvatar
+var _bot: BotDriver
 var _extract_gate: ExtractionGate
 var _fear: FearMeter
 # peer id -> remote avatar (Vision 5.2)
@@ -61,6 +62,15 @@ func _ready() -> void:
 	_player.emf.set_hotspots(house.emf_hotspots)
 	_player.emf.toggle(false)
 	_hud.set_emf(0.0, 1)
+	# Bot v1 (Vision 6): a scripted teammate investigates hotspots like a
+	# player — walks hall spine, logs readings into the shared journal.
+	var bot_avatar := InvestigatorAvatar.new()
+	bot_avatar.player_index = 2
+	add_child(bot_avatar)
+	bot_avatar.position = Vector3(5.4, 0.0, 4.4)
+	_bot = BotDriver.new()
+	add_child(_bot)
+	_bot.setup(bot_avatar, house, _journal, "Riggs (bot)")
 	# Spawn avatars for peers already registered (joiner case) and future ones.
 	for id in Net.players:
 		_spawn_remote_avatar(id, Net.players[id])
