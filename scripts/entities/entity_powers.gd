@@ -94,7 +94,7 @@ func _pick_target() -> Node3D:
 	var best_score := -1.0
 	var best: Node3D = null
 	for c in candidates:
-		var node: Node3D = c.get("node")
+		var node: Node3D = c.get("node") as Node3D
 		if node == null or not is_instance_valid(node):
 			continue
 		var fear: float = clampf(float(c.get("fear", 0.0)), 0.0, 100.0)
@@ -104,7 +104,8 @@ func _pick_target() -> Node3D:
 			best_score = score
 			best = node
 	hunted_last = best.name if best != null else ""
-	return best
+	# Keep the previous target when the board has no valid candidates.
+	return best if best != null else _target
 
 
 func _is_authority() -> bool:
