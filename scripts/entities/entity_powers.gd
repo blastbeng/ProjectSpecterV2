@@ -17,6 +17,12 @@ var kill_time_s := 7.0
 
 var _house: HouseBuilder
 var _target: Node3D
+## Hunt targets (Vision 6 fear->gameplay): candidates fed by Match each
+## second as {node: Node3D, fear: 0-100, isolated: bool}. The entity
+## prefers ISOLATED HIGH-FEAR investigators when casting.
+var candidates: Array = []
+var hunted_last := ""         # name of the last hunted target (tests/HUD)
+var _cand_refresh := 0.0
 var _cooldowns := {"slam": 7.0, "flicker": 12.0, "steps": 4.0}
 var _noise: FastNoiseLite
 var _flicker_t := 0.0
@@ -70,7 +76,35 @@ func _process(delta: float) -> void:
 		return
 	for p in _cooldowns:
 		_cooldowns[p] = maxf(_cooldowns[p] - delta, 0.0)
+	# Refresh the hunt-candidate board at 1 Hz from the fed candidates.
+	_cand_refresh -= delta
+	if _cand_refresh <= 0.0:
+		_cand_refresh = 1.0
+		_target = _pick_target()
 	_try_cast()
+
+
+## Hunt targeting (Vision 6): score = isolation weight x fear. Investigators
+## alone in the dark are hunted; a comfortable crowd is mostly ignored.
+## Falls back to whoever was fed first (classic proximity behavior comes
+## from Match feeding the local player when the board is thin).
+func _pick_target() -> Node3D:
+	if candidates.is_empty():
+		return _target  # nothing fed: keep the previous default target
+	var best_score := -1.0
+	var best: Node3D = null
+	for c in candidates:
+		var node: Node3D = c.get("node")
+		if node == null or not is_instance_valid(node):
+			continue
+		var fear: float = clampf(float(c.get("fear", 0.0)), 0.0, 100.0)
+		var isolated: bool = bool(c.get("isolated", false))
+		var score: float = fear + (45.0 if isolated else 0.0)
+		if score > best_score:
+			best_score = score
+			best = node
+	hunted_last = best.name if best != null else ""
+	return best
 
 
 func _is_authority() -> bool:

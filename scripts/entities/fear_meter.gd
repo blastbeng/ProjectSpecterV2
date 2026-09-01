@@ -104,6 +104,31 @@ func ratio() -> float:
 	return fear / MAX_FEAR
 
 
+## Host-side fear ESTIMATE for a remote investigator (entity targeting):
+## no fear value rides the wire, so the host approximates it from the same
+## conditions the local meter uses — darkness and isolation. Returns 0-100.
+static func estimate_fear(pos: Vector3, others: Array, house: Node3D) -> float:
+	var dark := true
+	if house != null:
+		for node in house.find_children("*", "OmniLight3D", true, false):
+			var l := node as OmniLight3D
+			if l.light_energy > 0.4 and l.global_position.distance_to(pos) < l.omni_range * 0.8:
+				dark = false
+				break
+	var isolated := true
+	for o in others:
+		if o is Node3D and is_instance_valid(o) and (o as Node3D).global_position.distance_to(pos) > 0.01 \
+				and (o as Node3D).global_position.distance_to(pos) < 8.0:
+			isolated = false
+			break
+	var est := 15.0
+	if dark:
+		est += 45.0
+	if isolated:
+		est += 35.0
+	return est
+
+
 ## Camera roll/offset hint (radians); capped low to stay comfortable.
 func sway_offset() -> float:
 	if fear < 45.0:

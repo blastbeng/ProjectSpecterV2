@@ -19,6 +19,8 @@ var _fear: FearMeter
 # peer id -> remote avatar (Vision 5.2)
 var _remote_avatars := {}
 var _toast_cooldown := 0.0
+# Entity hunt targeting (Vision 6): candidates fed to EntityPowers at 1 Hz.
+var _feed_timer := 0.0
 # Objective stage machine: "locked_room" -> "power" -> "extract" -> "flee".
 var _stage := "locked_room"
 var _extract_left := 0.0
@@ -124,7 +126,46 @@ func _process(delta: float) -> void:
 			AudioServer.set_bus_volume_db(
 				AudioServer.get_bus_index("Master"),
 				linear_to_db(1.0))
+	_feed_hunt_targets(delta)
 	_maybe_stage_panic_demo()
+
+
+## Entity hunt targeting (Vision 6 fear->gameplay): every second the entity
+## gets the investigator board with fear values — the local player reports
+## its real FearMeter.fear; remote avatars get a host-side darkness+isolation
+## ESTIMATE (FearMeter.estimate_fear) so no fear value rides the wire.
+func _feed_hunt_targets(delta: float) -> void:
+	_feed_timer -= delta
+	if _feed_timer > 0.0 or _powers == null:
+		return
+	_feed_timer = 1.0
+	var board: Array = []
+	var bodies: Array = []
+	if is_instance_valid(_player):
+		var real_fear: float = _fear.fear if is_instance_valid(_fear) else 0.0
+		board.append({"node": _player, "fear": real_fear, "isolated": _crowd().is_empty()})
+		bodies.append(_player)
+	for av in _crowd():
+		var others: Array = []
+		if is_instance_valid(_player):
+			others.append(_player)
+		for o in _crowd():
+			if o != av:
+				others.append(o)
+		var est: float = FearMeter.estimate_fear(
+			(av as Node3D).global_position, others, _house)
+		board.append({"node": av, "fear": est, "isolated": others.is_empty()})
+		bodies.append(av)
+	_powers.candidates = board
+
+
+## Teammate avatars alive right now (demo placeholder counts until a real
+## peer replaces it).
+func _crowd() -> Array:
+	var crowd: Array = _remote_avatars.values()
+	if is_instance_valid(_demo_avatar):
+		crowd.append(_demo_avatar)
+	return crowd
 
 
 ## Evidence staging for --panic-demo: pins the staged state against the
