@@ -80,35 +80,41 @@ start godot (Wayland):
 - Keep .godot/ and *.tmp in .gitignore (main cause of remote pull failures).
 
 ## 6. NEXT TASKS (top = next; rewrite this list as you work)
-1. Close-up HUD evidence on the RPi5 (Section 2.4 gate): --panic-demo runs
-   and pins fear 88 + held-E charge, but captures keep grabbing the DESKTOP
-   (window stacking on the 640x480 labwc output — grim captures topmost
-   layer, not the game). Fix stacking (raise game window / fullscreen
-   override / kill overlay apps) and take: panic prompt with hold-%, fear
-   bar at high value, warm lamp light on walls. Judged vs Section 5.
-2. Fear -> gameplay, part 2 (Vision 6): false sounds at high fear (whisper
-   burst + phantom knock behind the player), entity hunts isolated
-   HIGH-FEAR targets (Feed FearMeter.fear per-investigator into
-   EntityPowers target choice — needs per-player fear on the wire or
-   host-side computation).
-3. Bots v1 (Vision 6) — InvestigatorAvatar + drive() give bots a full body;
-   navigate hotspots, log evidence like players.
-4. Entity identification payoff: journal vote + extraction gate interplay —
+1. Bots v2 — bot uses doors properly (doorway waypoints from
+   door.position, not hall-spine cuts), avoids walking through furniture,
+   reacts to entity activity (flees flickers). Riggs currently cuts
+   corners through room edges; test_bot asserts bounds only.
+2. Entity identification payoff: journal vote + extraction gate interplay —
    gate refuses to arm until the correct entity is voted (win condition).
-5. Results screen + post-match flow (win/lose, evidence, objectives).
-6. Android touch controls.
-7. Countdown-end consequences: extraction failed -> entity gets a kill
+3. Results screen + post-match flow (win/lose, evidence, objectives).
+4. Countdown-end consequences: extraction failed -> entity gets a kill
    window / match loss path (results screen dependency).
-3. Bots v1 (Vision 6) — InvestigatorAvatar + drive() give bots a full body;
-   navigate hotspots, log evidence like players.
-4. Entity identification payoff: journal vote + extraction gate interplay —
-   gate refuses to arm until the correct entity is voted (win condition).
-5. Results screen + post-match flow (win/lose, evidence, objectives).
-6. Android touch controls.
-7. Countdown-end consequences: extraction failed -> entity gets a kill
-   window / match loss path (results screen dependency).
+5. Android touch controls.
+6. Panic close-up re-verify: fear meter was inset (-210/-80 offsets) and
+   playtester evidence re-taken pre-inset; one fresh close-up with the new
+   inset would close that loop formally.
+7. Multiplayer smoke with the bot + a real 2nd peer (bot replaced by real
+   avatar when a peer registers — verify _on_player_registered frees it).
 
 NOTES (session learnings, keep short):
+- 2026-09-01 SESSION (4 iterations, all pushed): (1) playtester bridge is
+  HEALTHY again after AiderDesk restart — full frozen-run staging loop
+  works: run(frozen) -> step -> exec SceneRouter.goto("res://scenes/match.tscn")
+  -> step -> exec stage (teleport, pin fear, synth E key) -> screenshot_game.
+  HouseBuilder auto-names (@Node3D@N) — find_children("*","HouseBuilder").
+  (2) Close-up panic evidence captured vs Section 5: hold-% prompt, red
+  fear bar, warm lamp rim, EMF viewmodel; fear meter inset to edge-safety.
+  (3) False sounds DONE (false_sounds.gd child of FearMeter): whisper
+  bursts + phantom knocks BEHIND player (behind = +cam_basis.z — camera
+  -z is FORWARD, sign cost a test iteration). (4) Entity hunts isolated
+  high-fear: candidates board {node,fear,isolated} fed 1 Hz in Match;
+  remotes get host-side FearMeter.estimate_fear (darkness+isolation), no
+  wire changes. Hunt pick must cast candidates to Node3D (Node assign
+  parse-trap) and keep prior target on empty board. (5) Bots v1 DONE:
+  BotDriver (scripts/ai/bot_driver.gd) walks hall-spine waypoints to
+  hotspots, dwells, logs via journal.bot_captured -> host_add_capture;
+  "Riggs (bot)" in Match with name plate; screenshot shows toast
+  "Logged: electrical hum — Kitchen". 15 tests + net_powers all PASS.
 - 2026-08-31 EVENING SESSION: panic interactions DONE (feats + test, all
   13 tests PASS incl. new test_panic_hold.gd): fear >= 82 hysteresis (off
   < 75) turns E into hold-to-complete with "-- hold E NN%" prompt, shaky
